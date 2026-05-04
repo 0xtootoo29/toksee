@@ -1,0 +1,1402 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="b" data-mode="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TokSee · Theme Demo</title>
+<style>
+  /* ============================================================
+     BASE TOKENS — shared across all themes
+     ============================================================ */
+  :root {
+    /* Spacing scale (4pt base) */
+    --space-2: 2px;
+    --space-4: 4px;
+    --space-6: 6px;
+    --space-8: 8px;
+    --space-10: 10px;
+    --space-12: 12px;
+    --space-14: 14px;
+    --space-16: 16px;
+    --space-18: 18px;
+    --space-20: 20px;
+    --space-24: 24px;
+    --space-28: 28px;
+
+    /* Type sizes */
+    --text-10: 10px;
+    --text-11: 11px;
+    --text-12: 12px;
+    --text-13: 13px;
+    --text-14: 14px;
+    --text-22: 22px;
+    --text-28: 28px;
+
+    /* Animation */
+    --ease: cubic-bezier(0.32, 0.72, 0, 1);
+    --transition: 280ms var(--ease);
+  }
+
+  /* ============================================================
+     RESET
+     ============================================================ */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  button { background: transparent; border: 0; padding: 0; cursor: pointer; font: inherit; color: inherit; }
+  ul, ol { list-style: none; }
+
+  /* ============================================================
+     SHELL — fully transparent window; popover fills it.
+     The popover's rounded corners ARE the visible shape.
+     Anything outside the rounded shape (window corners) is
+     transparent → desktop shows through.
+     Uses explicit 540px height to match Tauri window config —
+     100vh in WKWebView occasionally returns a smaller inner viewport.
+     ============================================================ */
+  html, body {
+    background: transparent;
+    margin: 0;
+    padding: 0;
+    height: 540px;
+    width: 100%;
+    overflow: hidden;
+  }
+  body {
+    font-family: var(--font-sans);
+    color: var(--text-primary);
+    transition: color var(--transition);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Stage menubar (legacy, hidden in production) */
+  .stage-menubar {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 26px;
+    background: var(--menubar-bg);
+    backdrop-filter: blur(40px) saturate(180%);
+    -webkit-backdrop-filter: blur(40px) saturate(180%);
+    border-bottom: 0.5px solid var(--menubar-border);
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 0 var(--space-14);
+    gap: var(--space-14);
+    font-size: var(--text-12);
+    color: var(--menubar-text);
+    z-index: 100;
+    transition: all var(--transition);
+  }
+  .stage-menubar .toksee-icon {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: var(--menubar-text);
+    font-weight: 500;
+    font-variant-numeric: tabular-nums;
+  }
+  .stage-menubar .toksee-icon svg { display: block; }
+
+  /* ============================================================
+     POPOVER — main container
+     ============================================================ */
+  .popover {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    background: var(--popover-bg);
+    backdrop-filter: var(--popover-backdrop, none);
+    -webkit-backdrop-filter: var(--popover-backdrop, none);
+    border: var(--popover-border);
+    border-radius: var(--popover-radius);
+    box-shadow: var(--popover-shadow);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: background var(--transition), border-color var(--transition), box-shadow var(--transition), border-radius var(--transition);
+  }
+  .footer { margin-top: auto; }
+
+  /* ============================================================
+     HEADER
+     ============================================================ */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-14) var(--space-18);
+    border-bottom: 0.5px solid var(--divider);
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: var(--space-8);
+  }
+  .brand-logo {
+    display: block;
+    width: 18px; height: 18px;
+    color: var(--brand-color);
+  }
+  .brand-name {
+    font-size: var(--text-13);
+    font-weight: 600;
+    letter-spacing: var(--brand-tracking, -0.1px);
+    color: var(--text-primary);
+  }
+  .brand-meta {
+    font-size: var(--text-11);
+    color: var(--text-tertiary);
+    margin-left: 4px;
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    position: relative;
+  }
+  .icon-btn {
+    width: 26px; height: 26px;
+    display: grid;
+    place-items: center;
+    border-radius: var(--icon-radius, 6px);
+    color: var(--text-tertiary);
+    transition: background 160ms var(--ease), color 160ms var(--ease);
+  }
+  .icon-btn:hover {
+    background: var(--icon-hover-bg);
+    color: var(--text-primary);
+  }
+  .icon-btn svg { width: 14px; height: 14px; display: block; }
+
+  /* ============================================================
+     HERO — today's spend
+     ============================================================ */
+  .hero {
+    padding: var(--space-18);
+    border-bottom: 0.5px solid var(--divider);
+    background: var(--hero-bg, transparent);
+  }
+  .hero-label {
+    font-size: var(--text-11);
+    color: var(--hero-label-color, var(--text-tertiary));
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    font-weight: 500;
+    margin-bottom: var(--space-6);
+  }
+  .hero-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-10);
+  }
+  .hero-value {
+    font-size: var(--hero-size, 28px);
+    font-weight: var(--hero-weight, 600);
+    line-height: 1;
+    letter-spacing: -1px;
+    font-variant-numeric: tabular-nums;
+    color: var(--hero-value-color, var(--text-primary));
+  }
+  .hero-delta {
+    font-size: var(--text-12);
+    font-weight: 500;
+    color: var(--delta-color);
+    background: var(--delta-bg);
+    padding: 3px 8px;
+    border-radius: 6px;
+    border: 1px solid var(--delta-border, transparent);
+    font-variant-numeric: tabular-nums;
+  }
+  .hero-sub {
+    margin-top: var(--space-8);
+    font-size: var(--text-12);
+    color: var(--hero-sub-color, var(--text-secondary));
+    display: flex;
+    gap: var(--space-12);
+    font-variant-numeric: tabular-nums;
+  }
+  .hero-sub-sep { color: var(--text-tertiary); }
+
+  /* ============================================================
+     TABS — segmented control
+     ============================================================ */
+  .tabs-wrap {
+    padding: var(--space-12) var(--space-18) 0;
+  }
+  .tabs {
+    display: inline-flex;
+    background: var(--tabs-bg);
+    border: var(--tabs-border, 0.5px solid transparent);
+    border-radius: 7px;
+    padding: 2px;
+    gap: 2px;
+  }
+  .tab {
+    padding: 5px 12px;
+    font-size: var(--text-12);
+    font-weight: 500;
+    color: var(--text-secondary);
+    border-radius: 5px;
+    transition: background 160ms var(--ease), color 160ms var(--ease);
+  }
+  .tab.active {
+    background: var(--tab-active-bg);
+    color: var(--text-primary);
+    box-shadow: var(--tab-active-shadow);
+  }
+
+  /* ============================================================
+     CHART — 7-day trend
+     ============================================================ */
+  .chart {
+    padding: var(--space-14) var(--space-18);
+    border-bottom: 0.5px solid var(--divider);
+  }
+  .chart-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--space-10);
+  }
+  .chart-title {
+    font-size: var(--text-11);
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    font-weight: 500;
+  }
+  .chart-total {
+    font-size: var(--text-13);
+    font-weight: 600;
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+  }
+  .chart-bars {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 6px;
+    align-items: end;
+    height: 48px;
+    margin-bottom: 6px;
+  }
+  .bar {
+    background: var(--bar-color);
+    border-radius: 2px;
+    min-height: 3px;
+    opacity: 0.45;
+    transition: opacity 160ms var(--ease), transform 160ms var(--ease);
+  }
+  .bar:hover { opacity: 0.85; transform: translateY(-1px); }
+  .bar.peak { opacity: 1; background: var(--bar-peak-color, var(--bar-color)); }
+  .bar.today {
+    opacity: 1;
+    background: var(--bar-today-color, var(--accent));
+    position: relative;
+  }
+  .bar.today::after {
+    content: "";
+    position: absolute;
+    top: -5px; left: 50%;
+    transform: translateX(-50%);
+    width: 4px; height: 4px;
+    background: var(--bar-today-color, var(--accent));
+    border-radius: 50%;
+  }
+  .chart-labels {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 6px;
+    font-size: var(--text-10);
+    color: var(--text-tertiary);
+    font-variant-numeric: tabular-nums;
+  }
+  .chart-label {
+    text-align: center;
+  }
+  .chart-label.today {
+    color: var(--text-primary);
+    font-weight: 600;
+  }
+
+  /* ============================================================
+     MODELS — list
+     ============================================================ */
+  .models {
+    padding: var(--space-8) 0;
+  }
+  .model-row {
+    display: grid;
+    grid-template-columns: 12px 1fr 32px 50px 60px;
+    align-items: center;
+    gap: var(--space-10);
+    padding: 8px var(--space-18);
+    transition: background 160ms var(--ease);
+  }
+  .model-row:hover { background: var(--row-hover); }
+
+  .model-dot {
+    width: 8px; height: 8px;
+    border-radius: 2px;
+  }
+  .model-row[data-model="gpt"] .model-dot { background: var(--model-gpt); }
+  .model-row[data-model="opus"] .model-dot { background: var(--model-opus); }
+  .model-row[data-model="sonnet"] .model-dot { background: var(--model-sonnet); }
+  .model-row[data-model="haiku"] .model-dot { background: var(--model-haiku); }
+
+  .model-name {
+    font-size: var(--text-13);
+    font-weight: 500;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .model-bar {
+    height: 4px;
+    background: var(--model-bar-bg);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .model-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+  }
+  .model-row[data-model="gpt"] .model-bar-fill { background: var(--model-gpt); width: 78%; }
+  .model-row[data-model="opus"] .model-bar-fill { background: var(--model-opus); width: 21%; }
+  .model-row[data-model="sonnet"] .model-bar-fill { background: var(--model-sonnet); width: 1.5%; }
+  .model-row[data-model="haiku"] .model-bar-fill { background: var(--model-haiku); width: 0.5%; }
+
+  .model-tokens {
+    font-size: var(--text-11);
+    color: var(--text-tertiary);
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  .model-cost {
+    font-size: var(--text-13);
+    font-weight: 600;
+    color: var(--text-primary);
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ============================================================
+     FOOTER
+     ============================================================ */
+  .footer {
+    padding: var(--space-10) var(--space-18);
+    border-top: 0.5px solid var(--divider);
+    background: var(--footer-bg, transparent);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: var(--text-11);
+    color: var(--text-tertiary);
+  }
+  .footer-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: var(--accent);
+    font-weight: 500;
+  }
+  .keybind {
+    background: var(--keybind-bg);
+    border: 0.5px solid var(--keybind-border);
+    border-radius: 4px;
+    padding: 1px 5px;
+    font-size: var(--text-10);
+    font-family: var(--font-mono);
+    color: var(--text-secondary);
+  }
+
+  /* ============================================================
+     THEME SWITCHER (popover-internal)
+     ============================================================ */
+  .switcher-popover {
+    position: absolute;
+    top: 44px;
+    right: 12px;
+    width: 220px;
+    background: var(--switcher-bg);
+    backdrop-filter: blur(40px) saturate(180%);
+    -webkit-backdrop-filter: blur(40px) saturate(180%);
+    border: 0.5px solid var(--divider);
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.18), 0 2px 6px rgba(0,0,0,0.08);
+    padding: 6px;
+    z-index: 50;
+    opacity: 0;
+    transform: translateY(-4px) scale(0.96);
+    pointer-events: none;
+    transition: opacity 180ms var(--ease), transform 180ms var(--ease);
+  }
+  .switcher-popover.open {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    pointer-events: auto;
+  }
+  .switcher-section {
+    padding: 6px 4px;
+  }
+  .switcher-section + .switcher-section {
+    border-top: 0.5px solid var(--divider);
+    margin-top: 2px;
+  }
+  .switcher-label {
+    font-size: var(--text-10);
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 500;
+    padding: 0 8px 6px;
+  }
+  .switcher-options {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+  }
+  .switcher-opt {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 4px;
+    border-radius: 7px;
+    transition: background 160ms var(--ease);
+    position: relative;
+  }
+  .switcher-opt:hover { background: var(--icon-hover-bg); }
+  .switcher-opt.active { background: var(--switcher-active-bg); }
+  .switcher-opt-name {
+    font-size: var(--text-11);
+    color: var(--text-primary);
+    font-weight: 500;
+  }
+  .switcher-opt.active .switcher-opt-name {
+    font-weight: 600;
+  }
+  .switcher-opt.active::after {
+    content: "";
+    position: absolute;
+    top: 4px; right: 4px;
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+  /* Theme preview swatches */
+  .opt-swatch {
+    width: 28px; height: 18px;
+    border-radius: 4px;
+    border: 0.5px solid var(--divider);
+    overflow: hidden;
+    position: relative;
+  }
+  .opt-swatch[data-pv="b"] {
+    background: linear-gradient(135deg, oklch(0.97 0.005 250) 0%, oklch(0.94 0.01 250) 100%);
+  }
+  .opt-swatch[data-pv="b"]::after {
+    content: ""; position: absolute; bottom: 3px; left: 3px;
+    width: 8px; height: 2px; background: oklch(0.55 0.20 240); border-radius: 1px;
+  }
+  .opt-swatch[data-pv="d"] {
+    background: linear-gradient(135deg, #ffd6a5 0%, #c8a5d4 50%, #a0c4ff 100%);
+  }
+  .opt-swatch[data-pv="f"] {
+    background: oklch(0.985 0 0);
+    border: 0.5px solid oklch(0.85 0 0);
+  }
+  .opt-swatch[data-pv="f"]::after {
+    content: ""; position: absolute; bottom: 3px; left: 3px;
+    width: 8px; height: 2px; background: oklch(0.15 0 0); border-radius: 1px;
+  }
+
+  .opt-mode-glyph {
+    width: 28px; height: 18px;
+    border-radius: 4px;
+    border: 0.5px solid var(--divider);
+    display: grid;
+    place-items: center;
+    font-size: 11px;
+  }
+  .opt-mode-glyph.light { background: oklch(0.98 0 0); color: oklch(0.65 0.10 60); }
+  .opt-mode-glyph.dark { background: oklch(0.15 0 0); color: oklch(0.85 0.05 240); }
+  .opt-mode-glyph.auto {
+    background: linear-gradient(90deg, oklch(0.98 0 0) 50%, oklch(0.15 0 0) 50%);
+    color: oklch(0.55 0 0);
+  }
+
+  /* ============================================================
+     INSTRUCTION RIBBON (only shown in demo)
+     ============================================================ */
+  .demo-banner {
+    position: fixed;
+    bottom: 24px; left: 50%;
+    transform: translateX(-50%);
+    background: oklch(0.18 0 0 / 0.85);
+    color: oklch(0.95 0 0);
+    backdrop-filter: blur(30px);
+    -webkit-backdrop-filter: blur(30px);
+    border: 0.5px solid oklch(1 0 0 / 0.1);
+    padding: 10px 16px;
+    border-radius: 999px;
+    font-size: 12px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .demo-banner kbd {
+    background: oklch(1 0 0 / 0.12);
+    border: 0.5px solid oklch(1 0 0 / 0.18);
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+  }
+
+  /* ============================================================
+     THEME B · macOS Native Light
+     ============================================================ */
+  [data-theme="b"][data-mode="light"] {
+    --font-sans: -apple-system, "SF Pro Text", "PingFang SC", "Helvetica Neue", sans-serif;
+    --font-mono: ui-monospace, "SF Mono", "Menlo", monospace;
+    --brand-tracking: -0.1px;
+
+    --stage:
+      radial-gradient(ellipse at 20% 0%, oklch(0.85 0.10 250 / 0.85) 0%, transparent 55%),
+      radial-gradient(ellipse at 80% 100%, oklch(0.82 0.10 30 / 0.85) 0%, transparent 50%),
+      radial-gradient(ellipse at 50% 50%, oklch(0.88 0.06 320 / 0.5) 0%, transparent 70%),
+      oklch(0.93 0.02 260);
+
+    --menubar-bg: oklch(1 0 0 / 0.7);
+    --menubar-border: oklch(0 0 0 / 0.08);
+    --menubar-text: oklch(0.20 0 0);
+
+    --popover-bg: oklch(0.97 0.005 250);
+    --popover-backdrop: none;
+    --popover-border: 0.5px solid oklch(0 0 0 / 0.1);
+    --popover-radius: 12px;
+    --popover-shadow: none;
+
+    --text-primary: oklch(0.18 0.005 250);
+    --text-secondary: oklch(0.42 0.008 250);
+    --text-tertiary: oklch(0.58 0.005 250);
+    --divider: oklch(0 0 0 / 0.08);
+
+    --accent: oklch(0.55 0.18 250);
+    --brand-color: oklch(0.55 0.18 250);
+
+    --hero-size: 28px;
+    --hero-bg: transparent;
+
+    --delta-color: oklch(0.50 0.15 145);
+    --delta-bg: oklch(0.95 0.05 145);
+    --delta-border: oklch(0.85 0.08 145);
+
+    --tabs-bg: oklch(0 0 0 / 0.06);
+    --tab-active-bg: oklch(1 0 0);
+    --tab-active-shadow: 0 1px 3px oklch(0 0 0 / 0.1);
+
+    --bar-color: oklch(0.55 0.18 250 / 0.4);
+    --bar-peak-color: oklch(0.55 0.18 250 / 0.7);
+    --bar-today-color: oklch(0.55 0.18 250);
+
+    --row-hover: oklch(0 0 0 / 0.03);
+    --model-bar-bg: oklch(0 0 0 / 0.06);
+    --model-gpt: oklch(0.62 0.18 145);
+    --model-opus: oklch(0.55 0.22 305);
+    --model-sonnet: oklch(0.70 0.17 50);
+    --model-haiku: oklch(0.55 0.005 250);
+
+    --footer-bg: oklch(0 0 0 / 0.025);
+    --keybind-bg: oklch(1 0 0);
+    --keybind-border: oklch(0 0 0 / 0.1);
+
+    --icon-hover-bg: oklch(0 0 0 / 0.05);
+    --switcher-bg: oklch(1 0 0 / 0.85);
+    --switcher-active-bg: oklch(0.55 0.18 250 / 0.1);
+  }
+
+  /* ============================================================
+     THEME B · macOS Native Dark
+     ============================================================ */
+  [data-theme="b"][data-mode="dark"] {
+    --font-sans: -apple-system, "SF Pro Text", "PingFang SC", "Helvetica Neue", sans-serif;
+    --font-mono: ui-monospace, "SF Mono", "Menlo", monospace;
+
+    --stage:
+      radial-gradient(ellipse at 20% 0%, oklch(0.30 0.10 250 / 0.7) 0%, transparent 55%),
+      radial-gradient(ellipse at 80% 100%, oklch(0.32 0.08 305 / 0.7) 0%, transparent 50%),
+      oklch(0.16 0.02 260);
+
+    --menubar-bg: oklch(0.20 0.01 250 / 0.85);
+    --menubar-border: oklch(1 0 0 / 0.08);
+    --menubar-text: oklch(0.95 0.005 250);
+
+    --popover-bg: oklch(0.22 0.012 250);
+    --popover-backdrop: none;
+    --popover-border: 0.5px solid oklch(1 0 0 / 0.12);
+    --popover-radius: 12px;
+    --popover-shadow: none;
+
+    --text-primary: oklch(0.96 0.005 250);
+    --text-secondary: oklch(0.78 0.008 250);
+    --text-tertiary: oklch(0.62 0.008 250);
+    --divider: oklch(1 0 0 / 0.1);
+
+    --accent: oklch(0.68 0.20 250);
+    --brand-color: oklch(0.78 0.18 250);
+
+    --hero-size: 28px;
+    --hero-bg: transparent;
+
+    --delta-color: oklch(0.78 0.20 145);
+    --delta-bg: oklch(0.30 0.10 145 / 0.3);
+    --delta-border: oklch(0.50 0.15 145 / 0.4);
+
+    --tabs-bg: oklch(1 0 0 / 0.08);
+    --tab-active-bg: oklch(1 0 0 / 0.15);
+    --tab-active-shadow: 0 1px 3px oklch(0 0 0 / 0.3);
+
+    --bar-color: oklch(0.68 0.20 250 / 0.4);
+    --bar-peak-color: oklch(0.68 0.20 250 / 0.75);
+    --bar-today-color: oklch(0.68 0.20 250);
+
+    --row-hover: oklch(1 0 0 / 0.04);
+    --model-bar-bg: oklch(1 0 0 / 0.08);
+    --model-gpt: oklch(0.72 0.20 145);
+    --model-opus: oklch(0.72 0.22 305);
+    --model-sonnet: oklch(0.78 0.18 50);
+    --model-haiku: oklch(0.65 0.008 250);
+
+    --footer-bg: oklch(1 0 0 / 0.03);
+    --keybind-bg: oklch(1 0 0 / 0.08);
+    --keybind-border: oklch(1 0 0 / 0.1);
+
+    --icon-hover-bg: oklch(1 0 0 / 0.08);
+    --switcher-bg: oklch(0.22 0.012 250 / 0.92);
+    --switcher-active-bg: oklch(0.68 0.20 250 / 0.18);
+  }
+
+  /* ============================================================
+     THEME D · Colorful Light
+     ============================================================ */
+  [data-theme="d"][data-mode="light"] {
+    --font-sans: -apple-system, "SF Pro Rounded", system-ui, "PingFang SC", sans-serif;
+    --font-mono: ui-monospace, "SF Mono", "Menlo", monospace;
+
+    --stage:
+      radial-gradient(ellipse at 12% 18%, oklch(0.92 0.08 60 / 0.9) 0%, transparent 50%),
+      radial-gradient(ellipse at 88% 75%, oklch(0.88 0.10 250 / 0.85) 0%, transparent 50%),
+      radial-gradient(ellipse at 50% 50%, oklch(0.93 0.07 145 / 0.6) 0%, transparent 60%),
+      oklch(0.97 0.01 80);
+
+    --menubar-bg: oklch(1 0 0 / 0.85);
+    --menubar-border: oklch(0 0 0 / 0.06);
+    --menubar-text: oklch(0.22 0.01 280);
+
+    --popover-bg: oklch(1 0 0);
+    --popover-backdrop: none;
+    --popover-border: 0.5px solid oklch(0 0 0 / 0.04);
+    --popover-radius: 24px;
+    --popover-shadow:
+      0 0 0 1px oklch(0 0 0 / 0.02),
+      0 20px 50px oklch(0.40 0.10 320 / 0.18),
+      0 6px 20px oklch(0.40 0.10 320 / 0.08);
+
+    --text-primary: oklch(0.25 0.02 280);
+    --text-secondary: oklch(0.50 0.01 280);
+    --text-tertiary: oklch(0.62 0.01 280);
+    --divider: oklch(0 0 0 / 0.06);
+
+    --accent: oklch(0.65 0.20 350);
+    --brand-color: oklch(0.65 0.20 350);
+
+    --hero-bg:
+      linear-gradient(135deg,
+        oklch(0.75 0.18 30) 0%,
+        oklch(0.70 0.20 350) 50%,
+        oklch(0.68 0.18 280) 100%);
+    --hero-value-color: oklch(1 0 0);
+    --hero-label-color: oklch(1 0 0 / 0.92);
+    --hero-sub-color: oklch(1 0 0 / 0.92);
+    --hero-size: 32px;
+    --hero-weight: 700;
+
+    --delta-color: oklch(1 0 0);
+    --delta-bg: oklch(1 0 0 / 0.25);
+    --delta-border: transparent;
+
+    --tabs-bg: oklch(0.95 0.01 60);
+    --tab-active-bg: oklch(1 0 0);
+    --tab-active-shadow: 0 1px 3px oklch(0 0 0 / 0.08);
+
+    --bar-color: oklch(0.70 0.18 350 / 0.4);
+    --bar-peak-color: oklch(0.65 0.22 350 / 0.85);
+    --bar-today-color: oklch(0.65 0.20 280);
+
+    --row-hover: oklch(0.96 0.02 60);
+    --model-bar-bg: oklch(0.95 0.01 60);
+    --model-gpt: oklch(0.65 0.18 145);
+    --model-opus: oklch(0.62 0.20 305);
+    --model-sonnet: oklch(0.72 0.17 50);
+    --model-haiku: oklch(0.68 0.02 280);
+
+    --footer-bg: oklch(0.98 0.005 80);
+    --keybind-bg: oklch(1 0 0);
+    --keybind-border: oklch(0 0 0 / 0.08);
+
+    --icon-hover-bg: oklch(0.95 0.02 60);
+    --icon-radius: 8px;
+    --switcher-bg: oklch(1 0 0 / 0.95);
+    --switcher-active-bg: oklch(0.95 0.05 350);
+  }
+
+  /* ============================================================
+     THEME D · Colorful Dark
+     ============================================================ */
+  [data-theme="d"][data-mode="dark"] {
+    --font-sans: -apple-system, "SF Pro Rounded", system-ui, "PingFang SC", sans-serif;
+    --font-mono: ui-monospace, "SF Mono", "Menlo", monospace;
+
+    --stage:
+      radial-gradient(ellipse at 12% 18%, oklch(0.30 0.18 30 / 0.45) 0%, transparent 50%),
+      radial-gradient(ellipse at 88% 75%, oklch(0.30 0.18 250 / 0.45) 0%, transparent 50%),
+      radial-gradient(ellipse at 50% 50%, oklch(0.30 0.15 320 / 0.4) 0%, transparent 60%),
+      oklch(0.13 0.02 280);
+
+    --menubar-bg: oklch(0.15 0.02 280 / 0.95);
+    --menubar-border: oklch(1 0 0 / 0.06);
+    --menubar-text: oklch(0.92 0.01 280);
+
+    --popover-bg: oklch(0.16 0.015 280);
+    --popover-backdrop: none;
+    --popover-border: 0.5px solid oklch(1 0 0 / 0.06);
+    --popover-radius: 24px;
+    --popover-shadow: none;
+
+    --text-primary: oklch(0.94 0.01 280);
+    --text-secondary: oklch(0.72 0.01 280);
+    --text-tertiary: oklch(0.58 0.008 280);
+    --divider: oklch(1 0 0 / 0.06);
+
+    --accent: oklch(0.72 0.22 350);
+    --brand-color: oklch(0.78 0.20 350);
+
+    --hero-bg:
+      linear-gradient(135deg,
+        oklch(0.65 0.22 30) 0%,
+        oklch(0.62 0.24 350) 50%,
+        oklch(0.62 0.22 280) 100%);
+    --hero-value-color: oklch(1 0 0);
+    --hero-label-color: oklch(1 0 0 / 0.92);
+    --hero-sub-color: oklch(1 0 0 / 0.92);
+    --hero-size: 32px;
+    --hero-weight: 700;
+
+    --delta-color: oklch(1 0 0);
+    --delta-bg: oklch(1 0 0 / 0.22);
+    --delta-border: transparent;
+
+    --tabs-bg: oklch(1 0 0 / 0.05);
+    --tab-active-bg: oklch(1 0 0 / 0.12);
+    --tab-active-shadow: 0 1px 3px oklch(0 0 0 / 0.3);
+
+    --bar-color: oklch(0.72 0.22 350 / 0.4);
+    --bar-peak-color: oklch(0.65 0.25 350 / 0.85);
+    --bar-today-color: oklch(0.72 0.22 280);
+
+    --row-hover: oklch(1 0 0 / 0.04);
+    --model-bar-bg: oklch(1 0 0 / 0.06);
+    --model-gpt: oklch(0.72 0.20 145);
+    --model-opus: oklch(0.72 0.22 305);
+    --model-sonnet: oklch(0.78 0.20 50);
+    --model-haiku: oklch(0.62 0.01 280);
+
+    --footer-bg: oklch(1 0 0 / 0.02);
+    --keybind-bg: oklch(1 0 0 / 0.08);
+    --keybind-border: oklch(1 0 0 / 0.08);
+
+    --icon-hover-bg: oklch(1 0 0 / 0.08);
+    --icon-radius: 8px;
+    --switcher-bg: oklch(0.20 0.015 280 / 0.97);
+    --switcher-active-bg: oklch(0.65 0.22 350 / 0.22);
+  }
+
+  /* ============================================================
+     THEME F · Linear / Vercel SaaS Light
+     ============================================================ */
+  [data-theme="f"][data-mode="light"] {
+    --font-sans: -apple-system, system-ui, "Helvetica Neue", "PingFang SC", sans-serif;
+    --font-mono: ui-monospace, "SF Mono", "Menlo", monospace;
+    --brand-tracking: -0.2px;
+
+    --stage:
+      linear-gradient(180deg, oklch(0.985 0 0) 0%, oklch(0.96 0 0) 100%),
+      oklch(0.985 0 0);
+
+    --menubar-bg: oklch(1 0 0 / 0.88);
+    --menubar-border: oklch(0 0 0 / 0.06);
+    --menubar-text: oklch(0.18 0 0);
+
+    --popover-bg: oklch(1 0 0);
+    --popover-backdrop: none;
+    --popover-border: 1px solid oklch(0.92 0 0);
+    --popover-radius: 14px;
+    --popover-shadow:
+      0 0 0 1px oklch(0 0 0 / 0.02),
+      0 12px 32px oklch(0 0 0 / 0.08),
+      0 4px 12px oklch(0 0 0 / 0.04);
+
+    --text-primary: oklch(0.18 0 0);
+    --text-secondary: oklch(0.45 0 0);
+    --text-tertiary: oklch(0.58 0 0);
+    --divider: oklch(0.92 0 0);
+
+    --accent: oklch(0.18 0 0);
+    --brand-color: oklch(0.18 0 0);
+
+    --hero-size: 32px;
+    --hero-weight: 600;
+    --hero-bg: transparent;
+
+    --delta-color: oklch(0.55 0.15 145);
+    --delta-bg: oklch(0.97 0.04 145);
+    --delta-border: oklch(0.90 0.06 145);
+
+    --tabs-bg: oklch(0.96 0 0);
+    --tabs-border: 0.5px solid oklch(0.92 0 0);
+    --tab-active-bg: oklch(0.92 0 0);
+    --tab-active-shadow: 0 1px 2px oklch(0 0 0 / 0.06), 0 0 0 1px oklch(0 0 0 / 0.04);
+
+    --bar-color: oklch(0.18 0 0);
+    --bar-peak-color: oklch(0.18 0 0);
+    --bar-today-color: oklch(0.18 0 0);
+
+    --row-hover: oklch(0.97 0 0);
+    --model-bar-bg: oklch(0.94 0 0);
+    --model-gpt: oklch(0.55 0.16 145);
+    --model-opus: oklch(0.50 0.20 305);
+    --model-sonnet: oklch(0.65 0.18 50);
+    --model-haiku: oklch(0.55 0 0);
+
+    --footer-bg: oklch(0.98 0 0);
+    --keybind-bg: oklch(1 0 0);
+    --keybind-border: oklch(0.92 0 0);
+
+    --icon-hover-bg: oklch(0.94 0 0);
+    --switcher-bg: oklch(1 0 0);
+    --switcher-active-bg: oklch(0.94 0 0);
+  }
+
+  /* ============================================================
+     THEME F · Linear / Vercel SaaS Dark
+     ============================================================ */
+  [data-theme="f"][data-mode="dark"] {
+    --font-sans: -apple-system, system-ui, "Helvetica Neue", "PingFang SC", sans-serif;
+    --font-mono: ui-monospace, "SF Mono", "Menlo", monospace;
+    --brand-tracking: -0.2px;
+
+    --stage:
+      linear-gradient(180deg, oklch(0.10 0 0) 0%, oklch(0.07 0 0) 100%),
+      oklch(0.07 0 0);
+
+    --menubar-bg: oklch(0.10 0 0 / 0.88);
+    --menubar-border: oklch(1 0 0 / 0.06);
+    --menubar-text: oklch(0.94 0 0);
+
+    --popover-bg: oklch(0.14 0 0);
+    --popover-backdrop: none;
+    --popover-border: 1px solid oklch(0.20 0 0);
+    --popover-radius: 14px;
+    --popover-shadow:
+      0 0 0 1px oklch(1 0 0 / 0.04),
+      0 12px 32px oklch(0 0 0 / 0.6),
+      0 4px 12px oklch(0 0 0 / 0.4);
+
+    --text-primary: oklch(0.94 0 0);
+    --text-secondary: oklch(0.70 0 0);
+    --text-tertiary: oklch(0.55 0 0);
+    --divider: oklch(0.22 0 0);
+
+    --accent: oklch(0.94 0 0);
+    --brand-color: oklch(0.94 0 0);
+
+    --hero-size: 32px;
+    --hero-weight: 600;
+    --hero-bg: transparent;
+
+    --delta-color: oklch(0.78 0.20 145);
+    --delta-bg: oklch(0.20 0.08 145 / 0.5);
+    --delta-border: oklch(0.40 0.12 145 / 0.5);
+
+    --tabs-bg: oklch(0.18 0 0);
+    --tabs-border: 0.5px solid oklch(0.22 0 0);
+    --tab-active-bg: oklch(0.25 0 0);
+    --tab-active-shadow: 0 1px 2px oklch(0 0 0 / 0.4), 0 0 0 1px oklch(1 0 0 / 0.06);
+
+    --bar-color: oklch(0.94 0 0);
+    --bar-peak-color: oklch(0.94 0 0);
+    --bar-today-color: oklch(0.94 0 0);
+
+    --row-hover: oklch(0.18 0 0);
+    --model-bar-bg: oklch(0.22 0 0);
+    --model-gpt: oklch(0.72 0.18 145);
+    --model-opus: oklch(0.65 0.22 305);
+    --model-sonnet: oklch(0.75 0.18 50);
+    --model-haiku: oklch(0.55 0 0);
+
+    --footer-bg: oklch(0.12 0 0);
+    --keybind-bg: oklch(0.18 0 0);
+    --keybind-border: oklch(0.25 0 0);
+
+    --icon-hover-bg: oklch(0.20 0 0);
+    --switcher-bg: oklch(0.16 0 0);
+    --switcher-active-bg: oklch(0.22 0 0);
+  }
+
+  /* ============================================================
+     RESPONSIVE TWEAKS
+     ============================================================ */
+  @media (max-height: 700px) {
+    body { padding: 32px 16px; align-items: start; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Main popover -->
+<div class="popover">
+  <header class="header">
+    <div class="brand">
+      <svg class="brand-logo" viewBox="0 0 100 100" aria-hidden="true">
+        <g fill="currentColor">
+          <rect x="20" y="60" width="6" height="18" rx="2" opacity="0.4"/>
+          <rect x="30" y="40" width="6" height="38" rx="2" opacity="0.65"/>
+          <rect x="40" y="50" width="6" height="28" rx="2" opacity="0.5"/>
+          <rect x="50" y="22" width="6" height="56" rx="2"/>
+          <rect x="60" y="35" width="6" height="43" rx="2" opacity="0.7"/>
+          <rect x="70" y="55" width="6" height="23" rx="2" opacity="0.45"/>
+          <rect x="80" y="48" width="6" height="30" rx="2" opacity="0.55"/>
+        </g>
+      </svg>
+      <span class="brand-name">TokSee</span>
+      <span class="brand-meta">· 已同步</span>
+    </div>
+    <div class="header-actions">
+      <button class="icon-btn" title="刷新" aria-label="刷新">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M14 8a6 6 0 1 1 -2.5 -4.85"/>
+          <path d="M14 2v3.5h-3.5"/>
+        </svg>
+      </button>
+      <button class="icon-btn" title="切换主题" aria-label="切换主题" id="settingsBtn" aria-haspopup="true" aria-expanded="false">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
+          <line x1="2.5" y1="4" x2="13.5" y2="4"/>
+          <line x1="2.5" y1="8" x2="13.5" y2="8"/>
+          <line x1="2.5" y1="12" x2="13.5" y2="12"/>
+          <circle cx="6" cy="4" r="1.6" fill="currentColor" stroke="none"/>
+          <circle cx="11" cy="8" r="1.6" fill="currentColor" stroke="none"/>
+          <circle cx="5" cy="12" r="1.6" fill="currentColor" stroke="none"/>
+        </svg>
+      </button>
+
+      <!-- Switcher panel -->
+      <div class="switcher-popover" id="switcherPanel" role="menu">
+        <div class="switcher-section">
+          <div class="switcher-label">主题</div>
+          <div class="switcher-options">
+            <button class="switcher-opt" data-theme-pick="b" role="menuitemradio">
+              <div class="opt-swatch" data-pv="b"></div>
+              <div class="switcher-opt-name">Native</div>
+            </button>
+            <button class="switcher-opt" data-theme-pick="d" role="menuitemradio">
+              <div class="opt-swatch" data-pv="d"></div>
+              <div class="switcher-opt-name">Vivid</div>
+            </button>
+            <button class="switcher-opt" data-theme-pick="f" role="menuitemradio">
+              <div class="opt-swatch" data-pv="f"></div>
+              <div class="switcher-opt-name">Pro</div>
+            </button>
+          </div>
+        </div>
+        <div class="switcher-section">
+          <div class="switcher-label">外观</div>
+          <div class="switcher-options">
+            <button class="switcher-opt" data-mode-pick="light" role="menuitemradio">
+              <div class="opt-mode-glyph light">☀</div>
+              <div class="switcher-opt-name">浅色</div>
+            </button>
+            <button class="switcher-opt" data-mode-pick="dark" role="menuitemradio">
+              <div class="opt-mode-glyph dark">☾</div>
+              <div class="switcher-opt-name">深色</div>
+            </button>
+            <button class="switcher-opt" data-mode-pick="auto" role="menuitemradio">
+              <div class="opt-mode-glyph auto">A</div>
+              <div class="switcher-opt-name">自动</div>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="hero-label" id="heroLabel">今日 Token</div>
+    <div class="hero-row">
+      <div class="hero-value" id="heroValue">1,770,401</div>
+      <div class="hero-delta" id="heroDelta">↓ 90%</div>
+    </div>
+    <div class="hero-sub">
+      <span id="heroCost">$1.71</span>
+      <span class="hero-sub-sep">·</span>
+      <span id="heroRecords">22 records</span>
+    </div>
+  </section>
+
+  <div class="tabs-wrap">
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab">今日</button>
+      <button class="tab active" role="tab" aria-selected="true">7d</button>
+      <button class="tab" role="tab">14d</button>
+      <button class="tab" role="tab">30d</button>
+    </div>
+  </div>
+
+  <section class="chart">
+    <div class="chart-head">
+      <div class="chart-title" id="chartTitle">7 天趋势</div>
+      <div class="chart-total" id="chartTotal">$185.30</div>
+    </div>
+    <div class="chart-bars" id="chartBars" aria-hidden="true"></div>
+    <div class="chart-labels" id="chartLabels"></div>
+  </section>
+
+  <section class="models" id="modelsList"></section>
+
+  <footer class="footer">
+    <span>下次更新 12:32</span>
+    <a class="footer-link" href="#" onclick="return false">
+      完整报告
+      <span class="keybind">⌘ R</span>
+    </a>
+  </footer>
+</div>
+
+<script>
+  // ===========================================================
+  // Helpers
+  // ===========================================================
+  const $ = id => document.getElementById(id);
+  const invoke = (cmd, args) => window.__TAURI__?.core?.invoke?.(cmd, args);
+
+  // Map model_label → color class (matches CSS .model-row[data-model="..."])
+  function classifyModel(label) {
+    const l = String(label).toLowerCase();
+    if (l.includes('gpt')) return 'gpt';
+    if (l.includes('opus')) return 'opus';
+    if (l.includes('sonnet')) return 'sonnet';
+    if (l.includes('haiku')) return 'haiku';
+    return 'haiku'; // fallback gray
+  }
+
+  // 1,770,401 → "1.77M"; 222,571,338 → "223M"; 8,000 → "8.0K"
+  function fmtTokens(n) {
+    if (!n || n === 0) return '0';
+    if (n >= 1e9) return (n / 1e9).toFixed(1) + 'B';
+    if (n >= 1e7) return Math.round(n / 1e6) + 'M';
+    if (n >= 1e6) return (n / 1e6).toFixed(2) + 'M';
+    if (n >= 1e4) return Math.round(n / 1e3) + 'K';
+    if (n >= 1e3) return (n / 1e3).toFixed(1) + 'K';
+    return n.toLocaleString();
+  }
+
+  function fmtCost(c) {
+    if (!c || c === 0) return '$0.00';
+    if (c >= 100) return '$' + Math.round(c).toLocaleString();
+    if (c >= 10) return '$' + c.toFixed(1);
+    return '$' + c.toFixed(2);
+  }
+
+  // YYYY-MM-DD → "M/D"
+  function fmtShortDate(iso) {
+    if (!iso) return '';
+    const parts = iso.split('-');
+    if (parts.length !== 3) return iso;
+    return `${parseInt(parts[1], 10)}/${parseInt(parts[2], 10)}`;
+  }
+
+  function todayISO() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  }
+
+  // ===========================================================
+  // Data fetching — calls Rust → tok json <period>
+  // ===========================================================
+  const PERIOD_TO_ARG = { 'today': 'today', '7d': '7', '14d': '14', '30d': '30' };
+
+  async function loadAndRender(period) {
+    const arg = PERIOD_TO_ARG[period] || '7';
+    showLoading();
+    try {
+      const data = await invoke('get_usage', { period: arg });
+      if (!data) {
+        showError('No data returned (Tauri IPC unavailable)');
+        return;
+      }
+      renderData(period, data);
+    } catch (err) {
+      console.error('[toksee] loadAndRender failed:', err);
+      showError(String(err));
+    }
+  }
+
+  function showLoading() {
+    $('heroValue').textContent = '…';
+    $('heroDelta').style.display = 'none';
+  }
+
+  function showError(msg) {
+    $('heroLabel').textContent = '加载失败';
+    $('heroValue').textContent = '—';
+    $('heroDelta').style.display = 'none';
+    $('heroCost').textContent = msg.length > 60 ? msg.slice(0, 60) + '…' : msg;
+    $('heroRecords').textContent = '';
+    $('chartBars').innerHTML = '';
+    $('chartLabels').innerHTML = '';
+    $('modelsList').innerHTML = '';
+  }
+
+  // ===========================================================
+  // Render real data
+  // ===========================================================
+  function renderData(period, data) {
+    const isToday = period === 'today';
+    const today = todayISO();
+
+    // ---- Hero ----
+    let totalTokens = 0, totalCost = 0, totalRecords = 0, label = '';
+    if (isToday) {
+      const t = data.totals || {};
+      totalTokens = t.total_tokens || 0;
+      totalCost = t.estimated_cost_usd || 0;
+      totalRecords = t.records || 0;
+      label = '今日 Token';
+    } else {
+      const dates = data.by_date || [];
+      totalTokens = dates.reduce((s, d) => s + (d.total_tokens || 0), 0);
+      totalCost = dates.reduce((s, d) => s + (d.estimated_cost_usd || 0), 0);
+      totalRecords = dates.reduce((s, d) => s + (d.records || 0), 0);
+      label = `${data.range_days || dates.length} 天总 Token`;
+    }
+
+    $('heroLabel').textContent = label;
+    $('heroValue').textContent = totalTokens.toLocaleString();
+    $('heroCost').textContent = fmtCost(totalCost);
+    $('heroRecords').textContent = totalRecords.toLocaleString() + ' records';
+    $('heroDelta').style.display = 'none'; // Phase 2.5: compute period-over-period delta
+
+    // ---- Chart ----
+    const chartTitle = isToday ? '今日按小时' : `近 ${data.range_days || 7} 天`;
+    $('chartTitle').textContent = chartTitle;
+    $('chartTotal').textContent = fmtCost(totalCost);
+
+    let series = [];
+    if (isToday) {
+      // by_hour: filter to non-zero hours, fall back to all if all zero
+      const hours = data.by_hour || [];
+      const nonZero = hours.filter(h => (h.total_tokens || 0) > 0);
+      const useHours = nonZero.length > 0 ? nonZero : hours;
+      series = useHours.map(h => ({
+        cost: h.estimated_cost_usd || 0,
+        label: (h.hour_label || '').slice(0, 2), // "01:00" → "01"
+        isToday: false,
+      }));
+    } else {
+      // by_date: sort ascending so today is on the right
+      const dates = (data.by_date || []).slice().sort((a, b) =>
+        a.local_date.localeCompare(b.local_date)
+      );
+      series = dates.map(d => ({
+        cost: d.estimated_cost_usd || 0,
+        label: fmtShortDate(d.local_date),
+        isToday: d.local_date === today,
+      }));
+    }
+
+    const maxCost = Math.max(...series.map(s => s.cost), 0.001);
+    const peakIdx = series.reduce(
+      (max, s, i) => (s.cost > series[max].cost ? i : max),
+      0
+    );
+
+    const barsEl = $('chartBars');
+    if (series.length > 0) {
+      barsEl.style.gridTemplateColumns = `repeat(${series.length}, 1fr)`;
+      barsEl.innerHTML = series
+        .map((s, i) => {
+          const heightPct = Math.max(2, (s.cost / maxCost) * 100);
+          const cls = ['bar', i === peakIdx ? 'peak' : '', s.isToday ? 'today' : '']
+            .filter(Boolean)
+            .join(' ');
+          return `<div class="${cls}" style="height: ${heightPct}%"></div>`;
+        })
+        .join('');
+    } else {
+      barsEl.innerHTML = '';
+    }
+
+    // Labels: only if ≤ 8 entries (avoid clutter for 14d/30d)
+    const labelsEl = $('chartLabels');
+    if (series.length > 0 && series.length <= 8) {
+      labelsEl.style.gridTemplateColumns = `repeat(${series.length}, 1fr)`;
+      labelsEl.innerHTML = series
+        .map(s => {
+          const cls = s.isToday ? 'chart-label today' : 'chart-label';
+          return `<span class="${cls}">${s.label || ''}</span>`;
+        })
+        .join('');
+      labelsEl.style.visibility = 'visible';
+    } else {
+      labelsEl.innerHTML = '';
+      labelsEl.style.visibility = 'hidden';
+    }
+
+    // ---- Models ----
+    // Sort by cost desc, take top 4 (or top 5 for 30d?), classify by name
+    const models = (data.by_model || [])
+      .map(m => ({
+        id: classifyModel(m.model_label),
+        name: m.model_label,
+        tokens: m.total_tokens || 0,
+        cost: m.estimated_cost_usd || 0,
+      }))
+      .sort((a, b) => b.cost - a.cost)
+      .slice(0, 4);
+
+    const maxModelCost = Math.max(...models.map(m => m.cost), 0.001);
+
+    $('modelsList').innerHTML = models
+      .map(m => {
+        const pct = (m.cost / maxModelCost) * 100;
+        return `
+        <div class="model-row" data-model="${m.id}">
+          <div class="model-dot"></div>
+          <div class="model-name">${m.name}</div>
+          <div class="model-bar"><div class="model-bar-fill" style="width: ${pct}%"></div></div>
+          <div class="model-tokens">${fmtTokens(m.tokens)}</div>
+          <div class="model-cost">${fmtCost(m.cost)}</div>
+        </div>
+      `;
+      })
+      .join('');
+  }
+
+  // ===========================================================
+  // Theme Switcher
+  // ===========================================================
+  const STORAGE_KEY = 'toksee.theme.v1';
+  const root = document.documentElement;
+  const settingsBtn = $('settingsBtn');
+  const panel = $('switcherPanel');
+
+  const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{"theme":"b","mode":"light"}');
+  applyTheme(saved.theme, saved.mode);
+
+  const mq = window.matchMedia('(prefers-color-scheme: dark)');
+  mq.addEventListener('change', () => {
+    if (saved.mode === 'auto') applyTheme(saved.theme, 'auto');
+  });
+
+  function applyTheme(theme, mode) {
+    saved.theme = theme;
+    saved.mode = mode;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
+
+    root.setAttribute('data-theme', theme);
+    if (mode === 'auto') {
+      root.setAttribute('data-mode', mq.matches ? 'dark' : 'light');
+    } else {
+      root.setAttribute('data-mode', mode);
+    }
+
+    document.querySelectorAll('[data-theme-pick]').forEach(b => {
+      b.classList.toggle('active', b.dataset.themePick === theme);
+    });
+    document.querySelectorAll('[data-mode-pick]').forEach(b => {
+      b.classList.toggle('active', b.dataset.modePick === mode);
+    });
+  }
+
+  settingsBtn.addEventListener('click', e => {
+    e.stopPropagation();
+    const isOpen = panel.classList.toggle('open');
+    settingsBtn.setAttribute('aria-expanded', String(isOpen));
+  });
+
+  document.addEventListener('click', e => {
+    if (!panel.contains(e.target) && e.target !== settingsBtn) {
+      panel.classList.remove('open');
+      settingsBtn.setAttribute('aria-expanded', 'false');
+    }
+  });
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      panel.classList.remove('open');
+      settingsBtn.setAttribute('aria-expanded', 'false');
+    }
+  });
+
+  document.querySelectorAll('[data-theme-pick]').forEach(b => {
+    b.addEventListener('click', () => applyTheme(b.dataset.themePick, saved.mode));
+  });
+  document.querySelectorAll('[data-mode-pick]').forEach(b => {
+    b.addEventListener('click', () => applyTheme(saved.theme, b.dataset.modePick));
+  });
+
+  // ===========================================================
+  // Tabs — swap period on click
+  // ===========================================================
+  const TAB_PERIODS = { '今日': 'today', '7d': '7d', '14d': '14d', '30d': '30d' };
+  const PERIOD_TO_TAB = { 'today': '今日', '7d': '7d', '14d': '14d', '30d': '30d' };
+
+  function activateTab(period) {
+    const targetText = PERIOD_TO_TAB[period];
+    document.querySelectorAll('[role="tab"]').forEach(x => {
+      const isActive = x.textContent.trim() === targetText;
+      x.classList.toggle('active', isActive);
+      x.setAttribute('aria-selected', String(isActive));
+    });
+  }
+
+  document.querySelectorAll('[role="tab"]').forEach(t => {
+    t.addEventListener('click', () => {
+      const period = TAB_PERIODS[t.textContent.trim()];
+      if (!period) return;
+      activateTab(period);
+      loadAndRender(period);
+    });
+  });
+
+  // Initial load — 7d default
+  loadAndRender('7d');
+
+  // Re-fetch on tray "refresh" or popover re-show
+  window.addEventListener('toksee:refresh', () => {
+    const active = document.querySelector('[role="tab"].active');
+    const period = active ? TAB_PERIODS[active.textContent.trim()] : '7d';
+    loadAndRender(period);
+  });
+</script>
+
+</body>
+</html>

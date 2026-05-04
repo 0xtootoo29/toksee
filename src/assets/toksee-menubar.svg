@@ -1,0 +1,11 @@
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <!-- Menubar template image: simplified to 5 bars, fully opaque -->
+  <!-- Optimized for 16-22pt rendering. macOS will auto-invert for dark menubar. -->
+  <g fill="#000000">
+    <rect x="22" y="60" width="8" height="18" rx="2"/>
+    <rect x="34" y="40" width="8" height="38" rx="2"/>
+    <rect x="46" y="50" width="8" height="28" rx="2"/>
+    <rect x="58" y="22" width="8" height="56" rx="2"/>
+    <rect x="70" y="35" width="8" height="43" rx="2"/>
+  </g>
+</svg>
