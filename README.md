@@ -34,45 +34,38 @@ TokSee surfaces this glanceably so you can adjust **before** the bill arrives.
 - Apple Silicon (M1 / M2 / M3 / M4) — Intel build is on the roadmap
 - [tokkit](https://github.com/yaojingang/yao-cli-tools/tree/main/tools/tokkit) installed locally — TokSee delegates raw token scanning to this excellent CLI
 
-## Install
+## Install — 30 seconds
 
-### 1. Install tokkit
+> ⚠️ **Read every step.** macOS Sequoia 15+ blocks unsigned downloads with a "damaged" warning that *cannot* be bypassed by right-click → Open. You must run the `xattr` command in step 3.
+
+### 1. Install tokkit (the data backend)
 
 ```bash
 pip install "git+https://github.com/yaojingang/yao-cli-tools.git#subdirectory=tools/tokkit"
+tok scan all
 ```
 
-Confirm it works:
+### 2. Download & move TokSee
 
-```bash
-tok scan claude-code
-tok scan codex
-tok today
-```
+Grab `TokSee-0.1.0-arm64.zip` from [Releases](https://github.com/0xtootoo29/toksee/releases), unzip, drag `TokSee.app` to **`/Applications`**.
 
-### 2. Download TokSee
+### 3. Clear the Gatekeeper quarantine flag
 
-Grab the latest `.app.zip` from [Releases](https://github.com/0xtootoo29/toksee/releases), unzip, drag `TokSee.app` to `/Applications`.
-
-### 3. First launch (Gatekeeper bypass) — IMPORTANT
-
-TokSee is not code-signed (Apple Developer membership costs $99/yr — not worth it for an open-source tool). On first launch macOS will refuse to open the app with one of these messages:
-
-> **"TokSee is damaged and can't be opened. You should move it to the Trash."**
-> (macOS Sequoia 15+)
-
-> **"TokSee can't be opened because Apple cannot check it for malicious software."**
-> (older macOS versions)
-
-**Do NOT move it to the Trash.** The app isn't damaged — macOS just adds a quarantine flag to anything downloaded from a browser. Run this one command to clear the flag:
+In Terminal:
 
 ```bash
 xattr -cr /Applications/TokSee.app
 ```
 
-After that, double-click TokSee.app like any other app.
+This is the ONE thing that prevents the **"TokSee.app 已损坏，无法打开"** / **"TokSee is damaged and can't be opened"** dialog.
 
-> **Why doesn't right-click → Open work?** On macOS Sequoia 15+, Apple removed the right-click bypass for apps marked as "damaged". The `xattr -cr` command is now the only easy fix for unsigned open-source apps.
+If you already saw that dialog and clicked Cancel — that's fine, just run the command above and double-click again.
+
+### 4. Launch
+
+Double-click `TokSee.app`. Look for the 7-bar icon + token count in your menu bar (top right of screen). Click it.
+
+> If you have **Hidden Bar** or **Bartender** installed, the icon may start in the hidden zone. Drag it out to make it always visible.
 
 ## Cost calculation
 
@@ -165,43 +158,38 @@ TokSee 把这个信息放在你随时能看见的地方，让你**在账单送�
 - Apple Silicon (M1/M2/M3/M4) — Intel 版本在路线图里
 - 已安装 [tokkit](https://github.com/yaojingang/yao-cli-tools/tree/main/tools/tokkit) — TokSee 把底层 token 扫描交给这个 CLI
 
-## 安装
+## 安装 — 30 秒搞定
 
-### 1. 安装 tokkit
+> ⚠️ **每一步都要看。** macOS Sequoia 15+ 对未签名应用强制弹"已损坏"警告，**不能**用右键→打开绕过。第 3 步的 `xattr` 命令是必须的。
+
+### 1. 装 tokkit（数据后端）
 
 ```bash
 pip install "git+https://github.com/yaojingang/yao-cli-tools.git#subdirectory=tools/tokkit"
+tok scan all
 ```
 
-确认能跑：
+### 2. 下载 + 拖到 Applications
 
-```bash
-tok scan claude-code
-tok scan codex
-tok today
-```
+到 [Releases](https://github.com/0xtootoo29/toksee/releases) 下载 `TokSee-0.1.0-arm64.zip`，解压，把 `TokSee.app` 拖到 **`/Applications`**。
 
-### 2. 下载 TokSee
+### 3. 清除 Gatekeeper quarantine 标记
 
-到 [Releases](https://github.com/0xtootoo29/toksee/releases) 下载最新的 `.app.zip`，解压，把 `TokSee.app` 拖到 `/Applications`。
-
-### 3. 首次启动 — 重要
-
-TokSee 没有代码签名（Apple Developer 账号要 $99/年，开源工具不值得），首次启动 macOS 会拒绝打开，弹出：
-
-> **"TokSee 已损坏，无法打开。您应该将它移到废纸篓。"**（macOS Sequoia 15+）
->
-> **"无法打开"TokSee"，因为 Apple 无法检查其是否包含恶意软件。"**（更老版本）
-
-**不要把它扔进废纸篓。** 应用没坏 — macOS 只是给从浏览器下载的文件加了 quarantine 标记。终端里跑这一条命令清除：
+终端跑：
 
 ```bash
 xattr -cr /Applications/TokSee.app
 ```
 
-之后双击 TokSee.app 就跟其他应用一样能开。
+这一行就解决 **"TokSee.app 已损坏，无法打开"** 警告。
 
-> **为什么右键 → 打开不管用了？** macOS Sequoia 15+ Apple 取消了 "damaged" 标记应用的右键绕过。对未签名的开源应用，`xattr -cr` 现在是唯一简单方法。
+如果你已经看到那个警告并点了取消，没关系，跑完上面那条命令再双击一次就能开。
+
+### 4. 启动
+
+双击 `TokSee.app`。看屏幕右上角菜单栏，应该能看到 **7 柱图标 + token 数**。点击展开 popover。
+
+> 如果你装了 **Hidden Bar** 或 **Bartender**，图标可能默认被藏起来了。从隐藏区拖出来就好。
 
 ## 成本计算
 
