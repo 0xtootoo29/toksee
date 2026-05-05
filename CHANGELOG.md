@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.1.1] — 2026-05-05
+
+### Removed
+
+- `correct_anthropic_costs()` Rust workaround (`src-tauri/src/lib.rs`,
+  ~115 lines). Upstream tokkit fixed the `cached_input_tokens` accounting
+  for Anthropic models in
+  [yao-cli-tools#3](https://github.com/yaojingang/yao-cli-tools/pull/3)
+  (closing [yao-cli-tools#2](https://github.com/yaojingang/yao-cli-tools/issues/2)).
+  TokSee now passes tokkit's JSON through unchanged — costs are computed
+  upstream with the correct disjoint cache-read accounting.
+
+### Required
+
+- Reinstall tokkit from latest `main` to pick up the fix:
+  `pip install --force-reinstall "git+https://github.com/yaojingang/yao-cli-tools.git#subdirectory=tools/tokkit"`.
+  Older tokkit installs will still undercount Claude costs ~6× — the
+  workaround that previously masked this is gone, so the wrong number
+  will be visible until tokkit is upgraded.
+
+[0.1.1]: https://github.com/0xtootoo29/toksee/releases/tag/v0.1.1
+
+---
+
 ## [0.1.0] — 2026-05-04
 
 First public release. macOS menu bar app for tracking token usage and cost

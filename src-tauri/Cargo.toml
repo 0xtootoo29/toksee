@@ -1,6 +1,6 @@
 [package]
 name = "toksee"
-version = "0.1.0"
+version = "0.1.1"
 description = "TokSee · Token usage tracker for AI coding tools"
 authors = ["too"]
 edition = "2021"

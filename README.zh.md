@@ -102,17 +102,12 @@ tok scan all
 
 ## 成本计算
 
-TokSee 用 tokkit 做 token 扫描，但**重写了 Anthropic 模型的 cost 计算**。tokkit 上游有个 bug：把 `cached_input_tokens` 当作 `input_tokens` 的子集（这是 OpenAI 的模型）。Anthropic 的 `cache_read_input_tokens` 是**独立字段**，所以 tokkit 默认把 Claude 的费用低估约 **6 倍**。
+TokSee 的 token 扫描和成本计算都交给 tokkit。从 TokSee v0.1.1（和 tokkit `main` 在 [yao-cli-tools#3](https://github.com/yaojingang/yao-cli-tools/pull/3) 合并之后）开始，tokkit 的 `pricing.py` 已经正确处理 Anthropic 的 `cache_read_input_tokens`（独立字段，不是 `input_tokens` 的子集），TokSee 这边不再做客户端重算。
 
-TokSee 用的官方 Anthropic 价格（每 1M tokens，2026-05）：
-
-| 模型 | Input | Cached | Output |
-|---|---|---|---|
-| Claude Opus 4.7 / 4.6 | $5.00 | $0.50 | $25.00 |
-| Claude Sonnet 4.6 / 4.5 | $3.00 | $0.30 | $15.00 |
-| Claude Haiku 4.5 | $1.00 | $0.10 | $5.00 |
-
-OpenAI / GPT 模型用 tokkit 内置定价（对 OpenAI 是对的）。
+> **请确保你的 tokkit 是最新版** —— 老 tokkit（≤ commit `c9ed365`）会把 `cached_input_tokens` 当作 `input_tokens` 的子集，导致 Claude 费用低估约 **6 倍**。重装命令：
+> ```
+> pip install --force-reinstall "git+https://github.com/yaojingang/yao-cli-tools.git#subdirectory=tools/tokkit"
+> ```
 
 > **注意**：
 > - Opus 4.7 的 1M context 溢价（$10/$1/$37.50）还没特殊处理，>200k token 的请求会略微低估。

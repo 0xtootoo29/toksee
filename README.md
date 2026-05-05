@@ -102,17 +102,12 @@ Look for the **7-bar icon + token count** in your menu bar (top right of screen)
 
 ## Cost calculation
 
-TokSee uses tokkit for token scanning, but **overrides the cost calculation for Anthropic models**. tokkit upstream has a bug: it treats `cached_input_tokens` as a subset of `input_tokens` (the OpenAI model). Anthropic's `cache_read_input_tokens` is a *separate* field, so tokkit silently undercounts Claude costs by ~6x.
+TokSee uses tokkit for both token scanning and cost computation. As of TokSee v0.1.1 (and tokkit `main` after [yao-cli-tools#3](https://github.com/yaojingang/yao-cli-tools/pull/3)), tokkit's `pricing.py` correctly accounts for Anthropic's disjoint `cache_read_input_tokens` field, so no client-side override is needed.
 
-TokSee's official Anthropic prices (per 1M tokens, as of 2026-05):
-
-| Model | Input | Cached | Output |
-|---|---|---|---|
-| Claude Opus 4.7 / 4.6 | $5.00 | $0.50 | $25.00 |
-| Claude Sonnet 4.6 / 4.5 | $3.00 | $0.30 | $15.00 |
-| Claude Haiku 4.5 | $1.00 | $0.10 | $5.00 |
-
-OpenAI / GPT models use tokkit's built-in pricing (which is correct for OpenAI's API).
+> **Make sure your tokkit is up to date** — older tokkit (≤ commit `c9ed365`) silently undercounts Claude costs ~6× because it treats `cached_input_tokens` as a subset of `input_tokens`. Reinstall with:
+> ```
+> pip install --force-reinstall "git+https://github.com/yaojingang/yao-cli-tools.git#subdirectory=tools/tokkit"
+> ```
 
 > **Caveats**:
 > - Opus 4.7's 1M-context premium pricing ($10/$1/$37.50) is not yet special-cased — costs for >200k token requests will be slightly underestimated.
