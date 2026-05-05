@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Internal session handoffs (not for public repo)
+HANDOFF-*.md
