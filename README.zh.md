@@ -157,6 +157,7 @@ bun run tauri build    # 发布构建 → src-tauri/target/release/bundle/macos/
 - [ ] Opus 4.7 1M-context 溢价
 
 ### v0.3.0+
+- [ ] **把 tokkit 打包进 .app 内部** — 不再要求用户 pip install Python 包（当前需要先 `pip install tokkit`；这一步会把 tokkit + 最小 Python runtime 一起冻进 `TokSee.app`，普通用户**下载即用**）
 - [ ] 自定义刷新间隔
 - [ ] 超过日预算时桌面通知
 - [ ] CSV 导出

@@ -157,6 +157,7 @@ The release build ad-hoc signs the .app and produces both a `.app` and a `.dmg` 
 - [ ] Opus 4.7 1M-context premium pricing
 
 ### v0.3.0+
+- [ ] **Bundle tokkit into the .app** — no Python install required (currently users must `pip install tokkit`; this would freeze tokkit + a minimal Python runtime inside `TokSee.app` so end-users can just download and run)
 - [ ] Configurable refresh interval
 - [ ] Notification when daily budget exceeded
 - [ ] Export usage as CSV
