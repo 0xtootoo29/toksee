@@ -167,6 +167,14 @@ bun run tauri build    # 发布构建 → src-tauri/target/release/bundle/macos/
 
 - [tokkit](https://github.com/yaojingang/yao-cli-tools/tree/main/tools/tokkit) by [@yaojingang](https://github.com/yaojingang) — token 扫描的核心。TokSee 只是它上面的一层好看 UI。
 
+## 更新日志
+
+见 [CHANGELOG.md](CHANGELOG.md)（英文）查看版本历史。
+
+## 贡献
+
+见 [CONTRIBUTING.md](CONTRIBUTING.md)（英文）了解如何提 issue 和 PR。
+
 ## License
 
 MIT — 见 [LICENSE](LICENSE)。

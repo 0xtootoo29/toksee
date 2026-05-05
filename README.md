@@ -167,6 +167,14 @@ The release build ad-hoc signs the .app and produces both a `.app` and a `.dmg` 
 
 - [tokkit](https://github.com/yaojingang/yao-cli-tools/tree/main/tools/tokkit) by [@yaojingang](https://github.com/yaojingang) — the heavy lifting on token scanning. TokSee is just a pretty UI on top.
 
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for release history.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for how to file issues and submit PRs.
+
 ## License
 
 MIT — see [LICENSE](LICENSE).
