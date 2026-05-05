@@ -1,5 +1,7 @@
 # TokSee
 
+**English** · [中文](README.zh.md)
+
 > See your tokens. A macOS menu bar app that tracks how much you spend on Claude Code, Codex, and other AI coding tools.
 
 <p align="center">
@@ -28,6 +30,16 @@ The official Anthropic Console / OpenAI dashboard show you yesterday's bill *if*
 
 TokSee surfaces this glanceably so you can adjust **before** the bill arrives.
 
+## v0.1 scope
+
+> **This release tracks usage from official Claude / Codex subscription accounts only.**
+>
+> If you log into Claude Code or Codex with the standard Anthropic / OpenAI API keys (or use the official desktop apps), TokSee will see your actual usage and apply the correct official pricing.
+>
+> **Not yet supported in v0.1**: third-party API providers / aggregators (e.g., using Claude Code via a custom `base_url` pointing to an OpenRouter / DeepInfra / AnyKey-style proxy). The token counts will be off (some proxies don't surface the same fields) and the cost will be wrong (your discounted rate ≠ official rate).
+>
+> **v0.2 will add**: custom base URL detection + per-aggregator pricing overrides.
+
 ## Requirements
 
 - macOS 11+ (Big Sur or later)
@@ -43,43 +55,56 @@ pip install "git+https://github.com/yaojingang/yao-cli-tools.git#subdirectory=to
 tok scan all
 ```
 
+`tok scan all` does an initial scan of every detectable AI tool on your machine. After this, TokSee can read the data.
+
 ### 2. Download TokSee
 
-Grab the latest `.dmg` from [Releases](https://github.com/0xtootoo29/toksee/releases). Double-click it and drag `TokSee.app` to the `Applications` folder shortcut inside.
+Grab the latest `.dmg` from the [Releases page](https://github.com/0xtootoo29/toksee/releases). Double-click it to mount.
 
-### 3. First launch (one-time Gatekeeper warning)
+### 3. Drag to Applications
 
-TokSee is **ad-hoc signed** but not signed by an Apple Developer ID (a $99/yr membership). On first launch macOS will block it once with this dialog:
+In the .dmg window, drag `TokSee.app` onto the `Applications` folder shortcut.
+
+### 4. First launch — Gatekeeper warning
+
+Double-click `TokSee.app` in `/Applications`. You will see this dialog:
 
 > **"TokSee" cannot be opened because it is from an unidentified developer.**
+> macOS cannot verify that this app is free of malware.
 
-This is normal for open-source macOS apps. To allow it:
+This is normal for open-source apps without a paid Apple Developer certificate ($99/yr). TokSee is **ad-hoc signed** so macOS knows the binary hasn't been tampered with — it just can't verify the author identity.
 
-**Option A — Right-click → Open** (easiest):
-1. Right-click `TokSee.app` in `/Applications` → **Open**
-2. Click **Open** in the warning dialog
-3. macOS remembers this. Next launches are silent.
+You only need to allow it **once**. Two ways:
 
-**Option B — System Settings**:
-1. Try to open TokSee normally (you'll see the warning, click Cancel)
-2. Open **System Settings → Privacy & Security**
-3. Scroll down — you'll see **"TokSee was blocked from use because it is not from an identified developer"**
-4. Click **Open Anyway** → confirm
-5. TokSee opens.
+#### Option A — Right-click → Open (fastest, ~3 clicks)
 
-After this one-time approval, TokSee launches like any other app.
+1. In `/Applications`, **right-click** `TokSee.app` (or Control-click)
+2. Select **Open** from the context menu
+3. A new dialog appears with an **Open** button — click it
+4. TokSee launches. Future launches are silent.
 
-### 4. Done
+#### Option B — System Settings (works if Option A is greyed out)
 
-Look for the 7-bar icon + token count in your menu bar (top right of screen). Click it.
+1. Try to open TokSee normally. The warning appears. Click **Cancel** or **Done**.
+2. Open **System Settings** (Apple menu → System Settings)
+3. Click **Privacy & Security** in the sidebar
+4. Scroll down to the **Security** section
+5. You'll see: **"TokSee" was blocked from use because it is not from an identified developer.**
+6. Click **Open Anyway** to the right of that message
+7. Authenticate with Touch ID or your password if prompted
+8. Try opening TokSee again — now you'll see a confirmation dialog with an **Open** button. Click it.
 
-> If you have **Hidden Bar** or **Bartender**, the icon may start in the hidden zone. Drag it out to make it always visible.
+### 5. Done
+
+Look for the **7-bar icon + token count** in your menu bar (top right of screen). Click it to see today's usage. Click the sliders icon (top right of the popover) to switch themes.
+
+> If you have **Hidden Bar**, **Bartender**, or **iStat Menus**, the TokSee icon may default to the hidden zone. Drag it out of hiding to make it always visible.
 
 ## Cost calculation
 
 TokSee uses tokkit for token scanning, but **overrides the cost calculation for Anthropic models**. tokkit upstream has a bug: it treats `cached_input_tokens` as a subset of `input_tokens` (the OpenAI model). Anthropic's `cache_read_input_tokens` is a *separate* field, so tokkit silently undercounts Claude costs by ~6x.
 
-TokSee's prices (per 1M tokens, as of 2026-05):
+TokSee's official Anthropic prices (per 1M tokens, as of 2026-05):
 
 | Model | Input | Cached | Output |
 |---|---|---|---|
@@ -89,7 +114,9 @@ TokSee's prices (per 1M tokens, as of 2026-05):
 
 OpenAI / GPT models use tokkit's built-in pricing (which is correct for OpenAI's API).
 
-**Note**: Opus 4.7 1M-context premium ($10/$1/$37.50) is not yet special-cased — costs for >200k token requests will be slightly underestimated.
+> **Caveats**:
+> - Opus 4.7's 1M-context premium pricing ($10/$1/$37.50) is not yet special-cased — costs for >200k token requests will be slightly underestimated.
+> - Costs assume **official subscription rates**. If you use a third-party API aggregator with custom rates, the numbers will be wrong (see "v0.1 scope" above).
 
 ## Themes
 
@@ -111,6 +138,8 @@ bun run tauri dev      # development mode (hot reload)
 bun run tauri build    # release build → src-tauri/target/release/bundle/macos/TokSee.app
 ```
 
+The release build ad-hoc signs the .app and produces both a `.app` and a `.dmg` in `src-tauri/target/release/bundle/`.
+
 ## Tech stack
 
 - **[Tauri 2](https://tauri.app)** — Rust backend + WKWebView frontend
@@ -120,14 +149,17 @@ bun run tauri build    # release build → src-tauri/target/release/bundle/macos
 
 ## Roadmap
 
+### v0.2.0
+- [ ] Third-party API / aggregator support (custom base URLs, OpenRouter, DeepInfra, etc.)
+- [ ] Custom pricing override for aggregator rates
 - [ ] Universal binary (Intel + ARM64) once we work around the Homebrew Rust toolchain
-- [ ] Real-time refresh (currently hourly)
+- [ ] Compare period-over-period (today vs yesterday delta)
+- [ ] Opus 4.7 1M-context premium pricing
+
+### v0.3.0+
 - [ ] Configurable refresh interval
 - [ ] Notification when daily budget exceeded
 - [ ] Export usage as CSV
-- [ ] Compare period-over-period (today vs yesterday delta)
-- [ ] Opus 4.7 1M-context premium pricing
-- [ ] Custom pricing override for new models
 - [ ] Code signing once we have a sponsor
 
 ## Acknowledgments
@@ -137,135 +169,3 @@ bun run tauri build    # release build → src-tauri/target/release/bundle/macos
 ## License
 
 MIT — see [LICENSE](LICENSE).
-
----
-
-# 中文说明
-
-> See your tokens. macOS 菜单栏小应用，实时追踪 Claude Code、Codex 等 AI 编码工具的 token 用量和花费。
-
-## 这是什么
-
-- **常驻菜单栏** — 一眼看到当日花费
-- **覆盖所有 AI 编码工具** — Claude Code、Codex (CLI + Desktop)、GPT-5.5 等
-- **3 套主题** — macOS Native / Vivid 彩色 / Linear & Vercel Pro 风（每套都有浅色和深色）
-- **4 个时间窗口** — 今日 / 7 天 / 14 天 / 30 天
-- **按模型拆分** — 看清哪个模型最烧钱
-- **每小时自动刷新** — 不用手动点
-- **100% 本地** — 数据从不离开你的电脑
-
-## 为什么需要它
-
-Anthropic Console 和 OpenAI 后台只能告诉你"昨天的账单"，前提是你记得登进去看。它们不会告诉你**5 分钟前那条命令刚烧了 $40 的 Opus token**。
-
-TokSee 把这个信息放在你随时能看见的地方，让你**在账单送达之前**就能调整。
-
-## 系统要求
-
-- macOS 11+ (Big Sur 及以上)
-- Apple Silicon (M1/M2/M3/M4) — Intel 版本在路线图里
-- 已安装 [tokkit](https://github.com/yaojingang/yao-cli-tools/tree/main/tools/tokkit) — TokSee 把底层 token 扫描交给这个 CLI
-
-## 安装
-
-### 1. 装 tokkit（数据后端）
-
-```bash
-pip install "git+https://github.com/yaojingang/yao-cli-tools.git#subdirectory=tools/tokkit"
-tok scan all
-```
-
-### 2. 下载 TokSee
-
-到 [Releases](https://github.com/0xtootoo29/toksee/releases) 下载最新的 `.dmg` 文件。双击打开，把 `TokSee.app` 拖到里面的 `Applications` 文件夹快捷方式上。
-
-### 3. 首次启动（一次性放行）
-
-TokSee 用了 **ad-hoc 自签**（免费），但不是 Apple Developer 证书签的（要 $99/年）。所以首次启动 macOS 会拦一次：
-
-> **"TokSee"无法打开，因为它来自身份不明的开发者。**
-
-这是开源 macOS 应用的常见情况。两种方式放行：
-
-**方式 A — 右键 → 打开**（最快）：
-1. 在 `/Applications` 里**右键**点 `TokSee.app` → **打开**
-2. 在警告对话框里点**打开**
-3. macOS 会记住，之后再启动就静默了
-
-**方式 B — 系统设置放行**：
-1. 正常双击 TokSee（会看到警告，点取消）
-2. 打开 **系统设置 → 隐私与安全性**
-3. 滚到下面 — 会看到 **"已阻止"TokSee"的使用，因为它不是来自被认证的开发者"**
-4. 点 **仍要打开** → 确认
-5. TokSee 启动
-
-完成一次性放行后，TokSee 跟其他 app 一样直接双击就开。
-
-### 4. 完成
-
-看屏幕右上角菜单栏，应该能看到 **7 柱图标 + token 数**。点击展开 popover。
-
-> 如果你装了 **Hidden Bar** 或 **Bartender**，图标可能被藏起来了。从隐藏区拖出来就好。
-
-## 成本计算
-
-TokSee 用 tokkit 做 token 扫描，但**重写了 Anthropic 模型的 cost 计算**。tokkit 上游有个 bug：把 `cached_input_tokens` 当作 `input_tokens` 的子集（这是 OpenAI 的模型）。Anthropic 的 `cache_read_input_tokens` 是**独立字段**，所以 tokkit 默认把 Claude 的费用低估约 **6 倍**。
-
-TokSee 用的官方 Anthropic 价格（每 1M tokens，2026-05）：
-
-| 模型 | Input | Cached | Output |
-|---|---|---|---|
-| Claude Opus 4.7 / 4.6 | $5.00 | $0.50 | $25.00 |
-| Claude Sonnet 4.6 / 4.5 | $3.00 | $0.30 | $15.00 |
-| Claude Haiku 4.5 | $1.00 | $0.10 | $5.00 |
-
-OpenAI / GPT 模型用 tokkit 内置定价（对 OpenAI 是对的）。
-
-> **注意**：Opus 4.7 的 1M context 溢价 ($10/$1/$37.50) 还没特殊处理，>200k token 的请求会略微低估。
-
-## 主题切换
-
-点 popover 右上角的滑块图标切换：
-
-- **Native** — macOS 原生质感（vibrancy + SF Pro + 系统蓝）
-- **Vivid** — 粉紫渐变 hero 卡，圆角，Notion 风
-- **Pro** — Linear / Vercel SaaS 仪表盘风，黑白点缀
-
-每套都有 **浅色 / 深色 / 跟随系统** 三种模式。选择会保存。
-
-## 从源码构建
-
-```bash
-git clone https://github.com/0xtootoo29/toksee.git
-cd toksee
-bun install
-bun run tauri dev      # 开发模式（热重载）
-bun run tauri build    # 发布构建 → src-tauri/target/release/bundle/macos/TokSee.app
-```
-
-## 技术栈
-
-- **[Tauri 2](https://tauri.app)** — Rust 后端 + WKWebView 前端
-- **Rust** — 系统托盘、popover 定位、IPC、cost 重算
-- **HTML/CSS/JS** — 主题、图表、切换器（无框架，无构建步骤）
-- **[tokkit](https://github.com/yaojingang/yao-cli-tools/tree/main/tools/tokkit)** — 本地 token 数据扫描
-
-## 路线图
-
-- [ ] Universal binary（Intel + ARM64）— 等绕过 Homebrew Rust 限制
-- [ ] 实时刷新（目前每小时）
-- [ ] 自定义刷新间隔
-- [ ] 超过日预算时桌面通知
-- [ ] CSV 导出
-- [ ] 期间对比（今日 vs 昨日 delta）
-- [ ] Opus 4.7 1M-context 溢价
-- [ ] 新模型自定义定价
-- [ ] 等到有赞助再做代码签名
-
-## 致谢
-
-- [tokkit](https://github.com/yaojingang/yao-cli-tools/tree/main/tools/tokkit) by [@yaojingang](https://github.com/yaojingang) — token 扫描的核心。TokSee 只是它上面的一层好看 UI。
-
-## License
-
-MIT — 见 [LICENSE](LICENSE)。
