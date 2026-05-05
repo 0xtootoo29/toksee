@@ -34,9 +34,7 @@ TokSee surfaces this glanceably so you can adjust **before** the bill arrives.
 - Apple Silicon (M1 / M2 / M3 / M4) — Intel build is on the roadmap
 - [tokkit](https://github.com/yaojingang/yao-cli-tools/tree/main/tools/tokkit) installed locally — TokSee delegates raw token scanning to this excellent CLI
 
-## Install — 30 seconds
-
-> ⚠️ **Read every step.** macOS Sequoia 15+ blocks unsigned downloads with a "damaged" warning that *cannot* be bypassed by right-click → Open. You must run the `xattr` command in step 3.
+## Install
 
 ### 1. Install tokkit (the data backend)
 
@@ -45,27 +43,37 @@ pip install "git+https://github.com/yaojingang/yao-cli-tools.git#subdirectory=to
 tok scan all
 ```
 
-### 2. Download & move TokSee
+### 2. Download TokSee
 
-Grab `TokSee-0.1.0-arm64.zip` from [Releases](https://github.com/0xtootoo29/toksee/releases), unzip, drag `TokSee.app` to **`/Applications`**.
+Grab the latest `.dmg` from [Releases](https://github.com/0xtootoo29/toksee/releases). Double-click it and drag `TokSee.app` to the `Applications` folder shortcut inside.
 
-### 3. Clear the Gatekeeper quarantine flag
+### 3. First launch (one-time Gatekeeper warning)
 
-In Terminal:
+TokSee is **ad-hoc signed** but not signed by an Apple Developer ID (a $99/yr membership). On first launch macOS will block it once with this dialog:
 
-```bash
-xattr -cr /Applications/TokSee.app
-```
+> **"TokSee" cannot be opened because it is from an unidentified developer.**
 
-This is the ONE thing that prevents the **"TokSee.app 已损坏，无法打开"** / **"TokSee is damaged and can't be opened"** dialog.
+This is normal for open-source macOS apps. To allow it:
 
-If you already saw that dialog and clicked Cancel — that's fine, just run the command above and double-click again.
+**Option A — Right-click → Open** (easiest):
+1. Right-click `TokSee.app` in `/Applications` → **Open**
+2. Click **Open** in the warning dialog
+3. macOS remembers this. Next launches are silent.
 
-### 4. Launch
+**Option B — System Settings**:
+1. Try to open TokSee normally (you'll see the warning, click Cancel)
+2. Open **System Settings → Privacy & Security**
+3. Scroll down — you'll see **"TokSee was blocked from use because it is not from an identified developer"**
+4. Click **Open Anyway** → confirm
+5. TokSee opens.
 
-Double-click `TokSee.app`. Look for the 7-bar icon + token count in your menu bar (top right of screen). Click it.
+After this one-time approval, TokSee launches like any other app.
 
-> If you have **Hidden Bar** or **Bartender** installed, the icon may start in the hidden zone. Drag it out to make it always visible.
+### 4. Done
+
+Look for the 7-bar icon + token count in your menu bar (top right of screen). Click it.
+
+> If you have **Hidden Bar** or **Bartender**, the icon may start in the hidden zone. Drag it out to make it always visible.
 
 ## Cost calculation
 
@@ -158,9 +166,7 @@ TokSee 把这个信息放在你随时能看见的地方，让你**在账单送�
 - Apple Silicon (M1/M2/M3/M4) — Intel 版本在路线图里
 - 已安装 [tokkit](https://github.com/yaojingang/yao-cli-tools/tree/main/tools/tokkit) — TokSee 把底层 token 扫描交给这个 CLI
 
-## 安装 — 30 秒搞定
-
-> ⚠️ **每一步都要看。** macOS Sequoia 15+ 对未签名应用强制弹"已损坏"警告，**不能**用右键→打开绕过。第 3 步的 `xattr` 命令是必须的。
+## 安装
 
 ### 1. 装 tokkit（数据后端）
 
@@ -169,27 +175,37 @@ pip install "git+https://github.com/yaojingang/yao-cli-tools.git#subdirectory=to
 tok scan all
 ```
 
-### 2. 下载 + 拖到 Applications
+### 2. 下载 TokSee
 
-到 [Releases](https://github.com/0xtootoo29/toksee/releases) 下载 `TokSee-0.1.0-arm64.zip`，解压，把 `TokSee.app` 拖到 **`/Applications`**。
+到 [Releases](https://github.com/0xtootoo29/toksee/releases) 下载最新的 `.dmg` 文件。双击打开，把 `TokSee.app` 拖到里面的 `Applications` 文件夹快捷方式上。
 
-### 3. 清除 Gatekeeper quarantine 标记
+### 3. 首次启动（一次性放行）
 
-终端跑：
+TokSee 用了 **ad-hoc 自签**（免费），但不是 Apple Developer 证书签的（要 $99/年）。所以首次启动 macOS 会拦一次：
 
-```bash
-xattr -cr /Applications/TokSee.app
-```
+> **"TokSee"无法打开，因为它来自身份不明的开发者。**
 
-这一行就解决 **"TokSee.app 已损坏，无法打开"** 警告。
+这是开源 macOS 应用的常见情况。两种方式放行：
 
-如果你已经看到那个警告并点了取消，没关系，跑完上面那条命令再双击一次就能开。
+**方式 A — 右键 → 打开**（最快）：
+1. 在 `/Applications` 里**右键**点 `TokSee.app` → **打开**
+2. 在警告对话框里点**打开**
+3. macOS 会记住，之后再启动就静默了
 
-### 4. 启动
+**方式 B — 系统设置放行**：
+1. 正常双击 TokSee（会看到警告，点取消）
+2. 打开 **系统设置 → 隐私与安全性**
+3. 滚到下面 — 会看到 **"已阻止"TokSee"的使用，因为它不是来自被认证的开发者"**
+4. 点 **仍要打开** → 确认
+5. TokSee 启动
 
-双击 `TokSee.app`。看屏幕右上角菜单栏，应该能看到 **7 柱图标 + token 数**。点击展开 popover。
+完成一次性放行后，TokSee 跟其他 app 一样直接双击就开。
 
-> 如果你装了 **Hidden Bar** 或 **Bartender**，图标可能默认被藏起来了。从隐藏区拖出来就好。
+### 4. 完成
+
+看屏幕右上角菜单栏，应该能看到 **7 柱图标 + token 数**。点击展开 popover。
+
+> 如果你装了 **Hidden Bar** 或 **Bartender**，图标可能被藏起来了。从隐藏区拖出来就好。
 
 ## 成本计算
 
