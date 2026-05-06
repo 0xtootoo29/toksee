@@ -7,6 +7,59 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.1.2] — 2026-05-06
+
+Wired up four interactive elements that were inert in v0.1.0/v0.1.1.
+
+### Added
+
+- **Refresh button** in the popover header now actually refetches `tok json`
+  (previously a decorative icon with no `onclick`).
+- **完整报告 / Full report** link now opens a tokkit HTML report scoped to the
+  active tab (今日 → 1 day, 7d/14d/30d → matching window). Generates via
+  `tok html last <N>` to `~/.tokkit/reports/`, patches the rendered HTML to
+  hide the upstream 7/14/30-day range switcher (it does subset filtering on
+  already-embedded data, so on a 1-/7-/14-day report the inactive buttons
+  silently do nothing — clearer to remove the dead control than to leave it
+  inert), then hands the file to the OS default browser. Tokkit itself is
+  untouched; only TokSee-rendered opens are patched.
+- **下次更新 HH:MM** footer now shows the next clock-aligned hour (e.g. open
+  the popover at 14:32 → "下次更新 15:00"). Re-seeded on popover open and on
+  every hourly auto-refresh; unaffected by manual refresh and tab switches —
+  manual refresh is for "I want fresh data NOW", not for shifting the
+  scheduled cadence.
+
+### Changed
+
+- Hourly auto-refresh now aligns to the local clock hour instead of running
+  3600s after launch (`src-tauri/src/lib.rs`). Open at 14:32 → first auto
+  refresh fires at 15:00, then 16:00, 17:00 … matching what the footer
+  predicts. Integer-hour timezones only; half-hour zones (IN/NP/NL) will be
+  ~30/45min off — acceptable for v0.1.
+- Today's hourly chart X-axis labels now show full `HH:MM` (e.g. "08:00") in
+  the user's wall clock — see the timezone fix below for why this matters.
+- Rust → WebView refresh dispatches now use `CustomEvent` with
+  `detail.source ∈ {"auto", "manual"}` so the WebView can tell hourly
+  refreshes apart from user-initiated ones.
+
+### Fixed
+
+- **Hour labels were UTC instead of local time.** tokkit's
+  `utils.get_timezone()` falls back to UTC on macOS because `tzname()`
+  returns abbreviations ("CST" / "PDT") that aren't valid IANA names —
+  `ZoneInfo("CST")` raises and tokkit silently uses UTC. As a result a
+  09:00 Beijing token spike showed up on the chart at "01:00".
+  TokSee now reads `/etc/localtime` and forwards `TOKKIT_TIMEZONE` to
+  every `tok` invocation (`get_usage`, `open_html_report`), so chart
+  labels and `local_date` boundaries match the wall clock.
+  Upstream tokkit fix tracked separately.
+- Removed the dead "⌘ R" keybind hint next to "完整报告" — there is no
+  command-R shortcut wired up; the link is click-only for now.
+
+[0.1.2]: https://github.com/0xtootoo29/toksee/releases/tag/v0.1.2
+
+---
+
 ## [0.1.1] — 2026-05-05
 
 ### Removed

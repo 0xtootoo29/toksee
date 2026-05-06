@@ -991,7 +991,7 @@
       <span class="brand-meta">· 已同步</span>
     </div>
     <div class="header-actions">
-      <button class="icon-btn" title="刷新" aria-label="刷新">
+      <button class="icon-btn" id="refreshBtn" title="立即刷新" aria-label="立即刷新">
         <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
           <path d="M14 8a6 6 0 1 1 -2.5 -4.85"/>
           <path d="M14 2v3.5h-3.5"/>
@@ -1082,10 +1082,9 @@
   <section class="models" id="modelsList"></section>
 
   <footer class="footer">
-    <span>下次更新 12:32</span>
-    <a class="footer-link" href="#" onclick="return false">
+    <span id="nextUpdate">下次更新 --:--</span>
+    <a class="footer-link" id="fullReportLink" href="#" role="button">
       完整报告
-      <span class="keybind">⌘ R</span>
     </a>
   </footer>
 </div>
@@ -1142,6 +1141,25 @@
   // Data fetching — calls Rust → tok json <period>
   // ===========================================================
   const PERIOD_TO_ARG = { 'today': 'today', '7d': '7', '14d': '14', '30d': '30' };
+  // For tok html last <N> — today maps to 1 (no "today-only" HTML report exists upstream).
+  const PERIOD_TO_REPORT_DAYS = { 'today': 1, '7d': 7, '14d': 14, '30d': 30 };
+
+  // Footer "下次更新 HH:MM" — always points at the next clock-aligned hour.
+  // Updated only on popover open and on auto-refresh from Rust (every clock hour);
+  // manual refresh and tab switches do NOT touch this.
+  function updateNextRefreshTime() {
+    const next = new Date();
+    next.setHours(next.getHours() + 1, 0, 0, 0);
+    const hh = String(next.getHours()).padStart(2, '0');
+    const mm = String(next.getMinutes()).padStart(2, '0');
+    const el = $('nextUpdate');
+    if (el) el.textContent = `下次更新 ${hh}:${mm}`;
+  }
+
+  function currentPeriod() {
+    const active = document.querySelector('[role="tab"].active');
+    return (active && TAB_PERIODS[active.textContent.trim()]) || '7d';
+  }
 
   async function loadAndRender(period) {
     const arg = PERIOD_TO_ARG[period] || '7';
@@ -1217,7 +1235,7 @@
       const useHours = nonZero.length > 0 ? nonZero : hours;
       series = useHours.map(h => ({
         cost: h.estimated_cost_usd || 0,
-        label: (h.hour_label || '').slice(0, 2), // "01:00" → "01"
+        label: h.hour_label || '', // full "HH:MM" so a single bar (e.g. "01:00") is unambiguous
         isToday: false,
       }));
     } else {
@@ -1387,14 +1405,32 @@
     });
   });
 
-  // Initial load — 7d default
+  // Initial load — 7d default + seed footer with the next clock-aligned hour
   loadAndRender('7d');
+  updateNextRefreshTime();
 
-  // Re-fetch on tray "refresh" or popover re-show
-  window.addEventListener('toksee:refresh', () => {
-    const active = document.querySelector('[role="tab"].active');
-    const period = active ? TAB_PERIODS[active.textContent.trim()] : '7d';
-    loadAndRender(period);
+  // Re-fetch on tray "refresh", popover re-show, or hourly Rust auto-refresh.
+  // Rust dispatches a CustomEvent with detail.source ∈ {"auto", "manual"};
+  // only auto sources advance the footer "下次更新" time.
+  window.addEventListener('toksee:refresh', (e) => {
+    loadAndRender(currentPeriod());
+    if (e.detail?.source === 'auto') updateNextRefreshTime();
+  });
+
+  // In-popover refresh button — manual, never advances the footer time.
+  $('refreshBtn')?.addEventListener('click', () => {
+    loadAndRender(currentPeriod());
+  });
+
+  // "完整报告" — open a tokkit HTML report scoped to the current popover tab.
+  $('fullReportLink')?.addEventListener('click', async (e) => {
+    e.preventDefault();
+    const days = PERIOD_TO_REPORT_DAYS[currentPeriod()] ?? 7;
+    try {
+      await invoke('open_html_report', { lastDays: days });
+    } catch (err) {
+      console.error('[toksee] open_html_report failed:', err);
+    }
   });
 </script>
 
