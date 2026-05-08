@@ -1,1437 +1,1689 @@
 <!DOCTYPE html>
-<html lang="zh-CN" data-theme="b" data-mode="light">
+<html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>TokSee · Theme Demo</title>
+<title>TokSee · v3 — three schemes, taller frame</title>
 <style>
-  /* ============================================================
-     BASE TOKENS — shared across all themes
-     ============================================================ */
-  :root {
-    /* Spacing scale (4pt base) */
-    --space-2: 2px;
-    --space-4: 4px;
-    --space-6: 6px;
-    --space-8: 8px;
-    --space-10: 10px;
-    --space-12: 12px;
-    --space-14: 14px;
-    --space-16: 16px;
-    --space-18: 18px;
-    --space-20: 20px;
-    --space-24: 24px;
-    --space-28: 28px;
-
-    /* Type sizes */
-    --text-10: 10px;
-    --text-11: 11px;
-    --text-12: 12px;
-    --text-13: 13px;
-    --text-14: 14px;
-    --text-22: 22px;
-    --text-28: 28px;
-
-    /* Animation */
-    --ease: cubic-bezier(0.32, 0.72, 0, 1);
-    --transition: 280ms var(--ease);
+  /* =========================================================
+     TOKSEE — popover-as-window layout (Tauri 380×540 transparent)
+     ========================================================= */
+  html, body {
+    margin: 0; padding: 0;
+    width: 100vw; height: 100vh; overflow: hidden;
+    background: transparent;
+    color: var(--text-primary, #cfd1d4);
+    font: 12px/1.5 ui-sans-serif, system-ui, -apple-system, "Helvetica Neue", "PingFang SC", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    user-select: none;
+    -webkit-user-select: none;
   }
 
-  /* ============================================================
-     RESET
-     ============================================================ */
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  button { background: transparent; border: 0; padding: 0; cursor: pointer; font: inherit; color: inherit; }
-  ul, ol { list-style: none; }
-
-  /* ============================================================
-     SHELL — fully transparent window; popover fills it.
-     The popover's rounded corners ARE the visible shape.
-     Anything outside the rounded shape (window corners) is
-     transparent → desktop shows through.
-     Uses explicit 540px height to match Tauri window config —
-     100vh in WKWebView occasionally returns a smaller inner viewport.
-     ============================================================ */
-  html, body {
-    background: transparent;
-    margin: 0;
-    padding: 0;
-    height: 540px;
-    width: 100%;
+  /* The frame is the visible window. .frame::before paints the scheme-
+     specific "backdrop" (gradient or solid) that the translucent popover
+     surface bleeds through (vibrancy effect). */
+  .frame {
+    width: 100vw; height: 100vh;
+    position: relative; isolation: isolate;
+    border-radius: var(--frame-radius, 14px);
     overflow: hidden;
   }
-  body {
-    font-family: var(--font-sans);
-    color: var(--text-primary);
-    transition: color var(--transition);
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
+  .frame::before {
+    content: "";
+    position: absolute; inset: 0;
+    background: var(--frame-stage, transparent);
+    z-index: 0;
+    transition: background 400ms cubic-bezier(.32,.72,0,1);
   }
 
-  /* Stage menubar (legacy, hidden in production) */
-  .stage-menubar {
-    display: none;
-    position: fixed;
-    top: 0; left: 0; right: 0;
-    height: 26px;
-    background: var(--menubar-bg);
-    backdrop-filter: blur(40px) saturate(180%);
-    -webkit-backdrop-filter: blur(40px) saturate(180%);
-    border-bottom: 0.5px solid var(--menubar-border);
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    padding: 0 var(--space-14);
-    gap: var(--space-14);
-    font-size: var(--text-12);
-    color: var(--menubar-text);
-    z-index: 100;
-    transition: all var(--transition);
-  }
-  .stage-menubar .toksee-icon {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    color: var(--menubar-text);
-    font-weight: 500;
-    font-variant-numeric: tabular-nums;
-  }
-  .stage-menubar .toksee-icon svg { display: block; }
-
-  /* ============================================================
-     POPOVER — main container
-     ============================================================ */
+  /* =================================================================
+     SHARED COMPONENT CSS
+     ================================================================= */
   .popover {
-    position: fixed;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    left: 0;
+    position: absolute; inset: 0; z-index: 1;
     background: var(--popover-bg);
     backdrop-filter: var(--popover-backdrop, none);
     -webkit-backdrop-filter: var(--popover-backdrop, none);
     border: var(--popover-border);
     border-radius: var(--popover-radius);
-    box-shadow: var(--popover-shadow);
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    transition: background var(--transition), border-color var(--transition), box-shadow var(--transition), border-radius var(--transition);
-  }
-  .footer { margin-top: auto; }
-
-  /* ============================================================
-     HEADER
-     ============================================================ */
-  .header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: var(--space-14) var(--space-18);
-    border-bottom: 0.5px solid var(--divider);
-  }
-  .brand {
-    display: flex;
-    align-items: center;
-    gap: var(--space-8);
-  }
-  .brand-logo {
-    display: block;
-    width: 18px; height: 18px;
-    color: var(--brand-color);
-  }
-  .brand-name {
-    font-size: var(--text-13);
-    font-weight: 600;
-    letter-spacing: var(--brand-tracking, -0.1px);
+    box-shadow: var(--popover-shadow, none);
     color: var(--text-primary);
+    font-family: var(--font-sans);
+    overflow: hidden;
+    display: flex; flex-direction: column;
+    transition:
+      background 400ms cubic-bezier(.32,.72,0,1),
+      backdrop-filter 400ms cubic-bezier(.32,.72,0,1),
+      border-radius 400ms cubic-bezier(.32,.72,0,1),
+      box-shadow 400ms cubic-bezier(.32,.72,0,1);
   }
-  .brand-meta {
-    font-size: var(--text-11);
-    color: var(--text-tertiary);
-    margin-left: 4px;
-  }
+  .popover * { box-sizing: border-box; }
+  .popover button { background: transparent; border: 0; padding: 0; cursor: pointer; font: inherit; color: inherit; }
+  .num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
 
-  .header-actions {
-    display: flex;
-    align-items: center;
-    gap: var(--space-4);
+  /* Header */
+  .pop-header {
+    height: 36px; flex: none;
+    display: grid; grid-template-columns: auto 1fr auto;
+    align-items: center; gap: 10px;
+    padding: 0 14px;
+    border-bottom: 0.5px solid var(--divider);
+    background: var(--header-bg, transparent);
+  }
+  .brand { display: flex; align-items: center; gap: 8px; }
+  .brand-mark { width: 14px; height: 14px; display: grid; place-items: center; color: var(--brand-color); }
+  .brand-name {
+    font-family: var(--font-mono);
+    font-size: 11px; font-weight: 600; letter-spacing: 0.6px;
+    text-transform: uppercase; color: var(--text-primary);
+  }
+  .header-status {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    font-family: var(--font-mono); font-size: 10px;
+    color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.4px;
+  }
+  .header-status .live-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--pos);
+    box-shadow: 0 0 0 2px color-mix(in oklab, var(--pos) 25%, transparent);
+    animation: pulse 2.4s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.45; } }
+  .header-actions { display: flex; align-items: center; gap: 2px; }
+  .icon-btn {
+    width: 24px; height: 24px; display: grid; place-items: center;
+    color: var(--text-tertiary); border-radius: 6px;
+    transition: background 160ms, color 160ms;
+  }
+  .icon-btn:hover { background: var(--icon-hover-bg); color: var(--text-primary); }
+  .icon-btn svg { width: 13px; height: 13px; display: block; }
+
+  /* Hero strip */
+  .strip {
+    padding: 16px 16px 16px;
+    border-bottom: 0.5px solid var(--divider);
+    background: var(--strip-bg, transparent);
+    color: var(--strip-text, inherit);
     position: relative;
   }
-  .icon-btn {
-    width: 26px; height: 26px;
-    display: grid;
-    place-items: center;
-    border-radius: var(--icon-radius, 6px);
+  .strip::after {
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background: var(--strip-overlay, transparent);
+  }
+  .strip > * { position: relative; z-index: 1; }
+  .strip-top {
+    display: flex; align-items: baseline; justify-content: space-between;
+    margin-bottom: 4px;
+  }
+  .strip-label {
+    font-family: var(--font-mono);
+    font-size: 10px; letter-spacing: 0.8px; text-transform: uppercase;
     color: var(--text-tertiary);
-    transition: background 160ms var(--ease), color 160ms var(--ease);
   }
-  .icon-btn:hover {
-    background: var(--icon-hover-bg);
+  .strip-label .accent-bar {
+    display: inline-block; width: 8px; height: 8px;
+    background: var(--strip-accent-bar, var(--accent));
+    margin-right: 6px; vertical-align: -1px;
+    border-radius: var(--accent-bar-radius, 0);
+  }
+  .strip-label, .strip-period { color: var(--strip-label-color, var(--text-tertiary)); }
+  .strip-value { color: var(--strip-value-color, var(--text-primary)); }
+  .strip-period {
+    font-family: var(--font-mono); font-size: 10px;
+    color: var(--text-quat); letter-spacing: 0.6px; text-transform: uppercase;
+  }
+  .strip-row {
+    display: grid; grid-template-columns: 1fr auto;
+    align-items: end; gap: 14px; margin-bottom: 12px;
+  }
+  .strip-value {
+    font-family: var(--font-mono);
+    font-size: 32px; font-weight: 500;
+    line-height: 1; letter-spacing: -0.6px;
     color: var(--text-primary);
-  }
-  .icon-btn svg { width: 14px; height: 14px; display: block; }
-
-  /* ============================================================
-     HERO — today's spend
-     ============================================================ */
-  .hero {
-    padding: var(--space-18);
-    border-bottom: 0.5px solid var(--divider);
-    background: var(--hero-bg, transparent);
-  }
-  .hero-label {
-    font-size: var(--text-11);
-    color: var(--hero-label-color, var(--text-tertiary));
-    text-transform: uppercase;
-    letter-spacing: 0.4px;
-    font-weight: 500;
-    margin-bottom: var(--space-6);
-  }
-  .hero-row {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: var(--space-10);
-  }
-  .hero-value {
-    font-size: var(--hero-size, 28px);
-    font-weight: var(--hero-weight, 600);
-    line-height: 1;
-    letter-spacing: -1px;
-    font-variant-numeric: tabular-nums;
-    color: var(--hero-value-color, var(--text-primary));
-  }
-  .hero-delta {
-    font-size: var(--text-12);
-    font-weight: 500;
-    color: var(--delta-color);
-    background: var(--delta-bg);
-    padding: 3px 8px;
-    border-radius: 6px;
-    border: 1px solid var(--delta-border, transparent);
     font-variant-numeric: tabular-nums;
   }
-  .hero-sub {
-    margin-top: var(--space-8);
-    font-size: var(--text-12);
-    color: var(--hero-sub-color, var(--text-secondary));
-    display: flex;
-    gap: var(--space-12);
-    font-variant-numeric: tabular-nums;
-  }
-  .hero-sub-sep { color: var(--text-tertiary); }
-
-  /* ============================================================
-     TABS — segmented control
-     ============================================================ */
-  .tabs-wrap {
-    padding: var(--space-12) var(--space-18) 0;
-  }
-  .tabs {
-    display: inline-flex;
-    background: var(--tabs-bg);
-    border: var(--tabs-border, 0.5px solid transparent);
-    border-radius: 7px;
-    padding: 2px;
+  /* Two-row delta chip: arrow + value on top, vs label underneath.
+     Stays compact + consistent across all periods (日/周/双周/月环比),
+     so long hero numbers (e.g. 1,562,953,622) never compress the vs
+     label into vertical Chinese text. */
+  .strip-delta {
+    display: inline-flex; flex-direction: column;
+    align-items: flex-end;
     gap: 2px;
+    padding: 4px 0 4px 8px;
+    font-family: var(--font-mono); font-size: 11px; line-height: 1;
+    border-left: 2px solid currentColor;
+    color: var(--strip-neg, var(--neg));
+    white-space: nowrap;
+  }
+  .strip-delta.up { color: var(--strip-pos, var(--pos)); }
+  .strip-delta .delta-line { display: inline-flex; align-items: baseline; gap: 3px; font-weight: 600; }
+  .strip-delta .arrow { font-weight: 600; font-size: 9px; }
+  .strip-delta .vs { font-size: 9px; opacity: 0.65; letter-spacing: 0.04em; }
+
+  .strip-cells {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    border-top: 0.5px solid var(--strip-divider, var(--divider));
+    padding-top: 12px;
+  }
+  .cell {
+    padding-right: 10px;
+    border-right: 0.5px solid var(--strip-divider, var(--divider));
+    display: flex; flex-direction: column; gap: 3px;
+  }
+  .cell:not(:first-child) { padding-left: 12px; }
+  .cell:last-child { border-right: 0; padding-right: 0; }
+  .cell-key {
+    font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.7px;
+    text-transform: uppercase; color: var(--strip-key-color, var(--text-tertiary));
+  }
+  .cell-val {
+    font-family: var(--font-mono); font-size: 13px; font-weight: 500;
+    color: var(--strip-value-color, var(--text-primary)); font-variant-numeric: tabular-nums; line-height: 1.1;
+  }
+  .cell-val.muted { color: var(--strip-muted-color, var(--text-secondary)); font-weight: 400; }
+  .cell-sub {
+    font-family: var(--font-mono); font-size: 9px;
+    color: var(--strip-sub-color, var(--text-quat)); letter-spacing: 0.4px;
+  }
+
+  /* Tabs — sublabels REMOVED */
+  .tabs-row {
+    display: flex; align-items: stretch;
+    border-bottom: 0.5px solid var(--divider);
+    padding: 0 8px;
   }
   .tab {
-    padding: 5px 12px;
-    font-size: var(--text-12);
-    font-weight: 500;
-    color: var(--text-secondary);
-    border-radius: 5px;
-    transition: background 160ms var(--ease), color 160ms var(--ease);
+    flex: 1; height: 32px;
+    display: grid; place-items: center;
+    font-family: var(--font-mono);
+    font-size: 11px; letter-spacing: 0.6px;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+    position: relative;
+    transition: color 160ms;
   }
-  .tab.active {
-    background: var(--tab-active-bg);
-    color: var(--text-primary);
-    box-shadow: var(--tab-active-shadow);
+  .tab:hover { color: var(--text-secondary); }
+  .tab.active { color: var(--text-primary); font-weight: 600; }
+  .tab.active::after {
+    content: "";
+    position: absolute;
+    left: 14px; right: 14px;
+    bottom: -0.5px;
+    height: 2px;
+    background: var(--accent);
+    border-radius: var(--tab-rule-radius, 0);
   }
 
-  /* ============================================================
-     CHART — 7-day trend
-     ============================================================ */
+  /* Chart */
   .chart {
-    padding: var(--space-14) var(--space-18);
+    padding: 14px 16px 4px;
     border-bottom: 0.5px solid var(--divider);
   }
   .chart-head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: var(--space-10);
+    display: grid; grid-template-columns: auto 1fr auto;
+    align-items: baseline; gap: 10px; margin-bottom: 8px;
   }
   .chart-title {
-    font-size: var(--text-11);
-    color: var(--text-tertiary);
-    text-transform: uppercase;
-    letter-spacing: 0.4px;
-    font-weight: 500;
+    font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.7px;
+    color: var(--text-tertiary); text-transform: uppercase;
   }
-  .chart-total {
-    font-size: var(--text-13);
-    font-weight: 600;
-    color: var(--text-primary);
-    font-variant-numeric: tabular-nums;
+  .chart-readout {
+    text-align: right; font-family: var(--font-mono); font-size: 11px;
+    color: var(--text-secondary); letter-spacing: 0.4px;
+  }
+  .chart-readout .read-val { color: var(--text-primary); font-weight: 600; margin-left: 6px; }
+  /* chart-plot: 1fr (bar area) + 60px (NOW flag column).
+     60px fits "$128.32" / "$1,234.56" without truncation in mono font. */
+  .chart-plot {
+    position: relative; height: 76px;
+    display: grid; grid-template-columns: 1fr 60px; gap: 4px;
   }
   .chart-bars {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 6px;
-    align-items: end;
-    height: 48px;
-    margin-bottom: 6px;
+    position: relative;
+    display: flex; align-items: flex-end; gap: 3px;
+    padding-bottom: 14px;
+    border-bottom: 0.5px solid var(--rule-strong);
+  }
+  .chart-bars::before {
+    content: "";
+    position: absolute; inset: 0 0 14px 0;
+    background-image:
+      linear-gradient(to top,
+        var(--grid-color) 0, var(--grid-color) 0.5px, transparent 0.5px, transparent 25%,
+        var(--grid-color) 25%, var(--grid-color) calc(25% + 0.5px), transparent calc(25% + 0.5px), transparent 50%,
+        var(--grid-color) 50%, var(--grid-color) calc(50% + 0.5px), transparent calc(50% + 0.5px), transparent 75%,
+        var(--grid-color) 75%, var(--grid-color) calc(75% + 0.5px), transparent calc(75% + 0.5px));
+    pointer-events: none;
   }
   .bar {
+    flex: 1; min-width: 4px;
     background: var(--bar-color);
-    border-radius: 2px;
-    min-height: 3px;
-    opacity: 0.45;
-    transition: opacity 160ms var(--ease), transform 160ms var(--ease);
+    transition: background 160ms;
+    align-self: end; position: relative; z-index: 1;
+    border-radius: var(--bar-radius, 0);
   }
-  .bar:hover { opacity: 0.85; transform: translateY(-1px); }
-  .bar.peak { opacity: 1; background: var(--bar-peak-color, var(--bar-color)); }
-  .bar.today {
-    opacity: 1;
-    background: var(--bar-today-color, var(--accent));
+  .bar:hover { background: var(--bar-peak-color); }
+  .bar.peak { background: var(--bar-peak-color); }
+  .bar.today { background: var(--bar-today-color); }
+  .bar.zero { background: var(--text-quat); height: 1px !important; opacity: 0.4; }
+  .chart-flag {
     position: relative;
+    border-left: 0.5px dashed var(--accent);
+    padding-left: 6px;
+    align-self: stretch;
+    display: flex; flex-direction: column; justify-content: flex-end;
+    padding-bottom: 14px;
   }
-  .bar.today::after {
-    content: "";
-    position: absolute;
-    top: -5px; left: 50%;
-    transform: translateX(-50%);
-    width: 4px; height: 4px;
-    background: var(--bar-today-color, var(--accent));
-    border-radius: 50%;
+  .flag-tag {
+    font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.5px;
+    color: var(--accent); text-transform: uppercase; line-height: 1.1; margin-bottom: 2px;
   }
-  .chart-labels {
+  .flag-val { font-family: var(--font-mono); font-size: 11px; font-weight: 600; color: var(--text-primary); line-height: 1.05; }
+  .flag-sub { font-family: var(--font-mono); font-size: 9px; color: var(--text-tertiary); margin-top: 1px; }
+  /* chart-axis aligns to chart-bars by mirroring its layout: same width
+     (full width minus 40px flag column + 4px gap), same per-bar grid
+     spacing, same gap. Each axis label uses grid-column: <i+1> to land
+     on the same column as bar i — guaranteed alignment regardless of N
+     bars or gap size. Empty grid cells are fine. */
+  .chart-axis {
+    margin-top: 6px; height: 12px;
+    width: calc(100% - 64px);
     display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 6px;
-    font-size: var(--text-10);
-    color: var(--text-tertiary);
-    font-variant-numeric: tabular-nums;
+    gap: 3px;
+    font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.4px;
+    color: var(--text-quat);
   }
-  .chart-label {
+  .chart-axis span {
     text-align: center;
+    white-space: nowrap;
+    overflow: visible;
   }
-  .chart-label.today {
-    color: var(--text-primary);
-    font-weight: 600;
-  }
+  .chart-axis span.now { color: var(--accent); font-weight: 600; }
+  .chart-axis span.now { color: var(--accent); font-weight: 600; }
 
-  /* ============================================================
-     MODELS — list
-     ============================================================ */
-  .models {
-    padding: var(--space-8) 0;
+  /* Models — SYM column REMOVED. New grid: name | share | tok | cost */
+  .models-head {
+    display: grid; grid-template-columns: 1fr 64px 56px 60px;
+    align-items: center; gap: 10px;
+    padding: 8px 16px 4px;
+    font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.7px;
+    color: var(--text-quat); text-transform: uppercase;
+    border-bottom: 0.5px solid var(--divider);
   }
+  .models-head .col-share, .models-head .col-tok, .models-head .col-cost { text-align: right; }
+  .models {
+    flex: 1 1 auto; overflow-y: auto; overflow-x: hidden; padding: 0 0 4px;
+    scrollbar-width: thin;
+  }
+  .models::-webkit-scrollbar { width: 4px; }
+  .models::-webkit-scrollbar-thumb { background: var(--divider); border-radius: 2px; }
   .model-row {
-    display: grid;
-    grid-template-columns: 12px 1fr 32px 50px 60px;
-    align-items: center;
-    gap: var(--space-10);
-    padding: 8px var(--space-18);
-    transition: background 160ms var(--ease);
+    display: grid; grid-template-columns: 1fr 64px 56px 60px;
+    align-items: center; gap: 10px;
+    padding: 8px 16px;
+    border-bottom: 0.5px solid var(--hairline);
+    transition: background 120ms;
   }
   .model-row:hover { background: var(--row-hover); }
-
+  .model-row:last-child { border-bottom: 0; }
+  .model-name-wrap {
+    display: flex; align-items: center; gap: 8px;
+    min-width: 0;
+  }
   .model-dot {
     width: 8px; height: 8px;
-    border-radius: 2px;
+    border-radius: var(--dot-radius, 2px);
+    flex: none;
   }
   .model-row[data-model="gpt"] .model-dot { background: var(--model-gpt); }
   .model-row[data-model="opus"] .model-dot { background: var(--model-opus); }
   .model-row[data-model="sonnet"] .model-dot { background: var(--model-sonnet); }
   .model-row[data-model="haiku"] .model-dot { background: var(--model-haiku); }
-
   .model-name {
-    font-size: var(--text-13);
-    font-weight: 500;
+    font-family: var(--font-sans); font-size: 12px; font-weight: 500;
     color: var(--text-primary);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    letter-spacing: -0.05px;
   }
-  .model-bar {
-    height: 4px;
-    background: var(--model-bar-bg);
-    border-radius: 2px;
-    overflow: hidden;
-  }
-  .model-bar-fill {
-    height: 100%;
-    border-radius: 2px;
-  }
-  .model-row[data-model="gpt"] .model-bar-fill { background: var(--model-gpt); width: 78%; }
-  .model-row[data-model="opus"] .model-bar-fill { background: var(--model-opus); width: 21%; }
-  .model-row[data-model="sonnet"] .model-bar-fill { background: var(--model-sonnet); width: 1.5%; }
-  .model-row[data-model="haiku"] .model-bar-fill { background: var(--model-haiku); width: 0.5%; }
-
-  .model-tokens {
-    font-size: var(--text-11);
+  .model-name .ver {
     color: var(--text-tertiary);
-    text-align: right;
-    font-variant-numeric: tabular-nums;
+    font-size: 11px; margin-left: 3px; font-weight: 400;
+  }
+  .model-share { display: flex; align-items: center; gap: 6px; justify-content: flex-end; }
+  .share-bar { flex: 1; height: 3px; background: var(--model-bar-bg); position: relative; border-radius: var(--share-radius, 0); }
+  .share-bar > span { position: absolute; left: 0; top: 0; bottom: 0; border-radius: inherit; }
+  .model-row[data-model="gpt"] .share-bar > span { background: var(--model-gpt); }
+  .model-row[data-model="opus"] .share-bar > span { background: var(--model-opus); }
+  .model-row[data-model="sonnet"] .share-bar > span { background: var(--model-sonnet); }
+  .model-row[data-model="haiku"] .share-bar > span { background: var(--model-haiku); }
+  .share-pct {
+    font-family: var(--font-mono); font-size: 9px;
+    color: var(--text-tertiary); width: 26px; text-align: right;
+  }
+  .model-tok {
+    font-family: var(--font-mono); font-size: 10.5px;
+    color: var(--text-secondary); text-align: right; font-variant-numeric: tabular-nums;
   }
   .model-cost {
-    font-size: var(--text-13);
-    font-weight: 600;
-    color: var(--text-primary);
-    text-align: right;
+    font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+    color: var(--text-primary); text-align: right; font-variant-numeric: tabular-nums;
+  }
+
+  /* Footer — tightened ticker */
+  .footer {
+    flex: none; height: 30px;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center; gap: 10px;
+    padding: 0 14px;
+    border-top: 0.5px solid var(--divider);
+    background: var(--footer-bg);
+    font-family: var(--font-mono); font-size: 10px;
+    color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.4px;
+  }
+  .footer .next-update { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .footer .next-update b {
+    color: var(--text-primary); font-weight: 600; letter-spacing: 0.6px;
+  }
+  /* Compact ticker — small chips, fits within minmax(0,1fr) */
+  .footer .ticker {
+    display: flex; align-items: center; justify-content: center;
+    gap: 6px;
+    min-width: 0; overflow: hidden;
+  }
+  .footer .chip {
+    display: inline-flex; align-items: center; gap: 3px;
+    font-size: 9px; letter-spacing: 0.3px;
+    color: var(--text-quat);
+    flex: none;
+  }
+  .footer .chip .sym {
+    color: var(--text-tertiary); font-weight: 600;
+    letter-spacing: 0.4px;
+  }
+  .footer .chip .val {
     font-variant-numeric: tabular-nums;
   }
-
-  /* ============================================================
-     FOOTER
-     ============================================================ */
-  .footer {
-    padding: var(--space-10) var(--space-18);
-    border-top: 0.5px solid var(--divider);
-    background: var(--footer-bg, transparent);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    font-size: var(--text-11);
-    color: var(--text-tertiary);
-  }
+  .footer .chip.pos .val { color: var(--pos); }
+  .footer .chip.neg .val { color: var(--neg); }
   .footer-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    color: var(--accent);
-    font-weight: 500;
+    display: inline-flex; align-items: center; gap: 4px;
+    color: var(--text-primary); font-weight: 600;
+    letter-spacing: 0.6px; text-decoration: none;
+    border-bottom: 1px solid var(--accent);
+    padding-bottom: 1px; line-height: 1;
+    cursor: pointer; white-space: nowrap;
   }
-  .keybind {
-    background: var(--keybind-bg);
-    border: 0.5px solid var(--keybind-border);
-    border-radius: 4px;
-    padding: 1px 5px;
-    font-size: var(--text-10);
-    font-family: var(--font-mono);
-    color: var(--text-secondary);
-  }
+  .footer-link:hover { color: var(--accent); }
 
-  /* ============================================================
-     THEME SWITCHER (popover-internal)
-     ============================================================ */
-  .switcher-popover {
-    position: absolute;
-    top: 44px;
-    right: 12px;
-    width: 220px;
-    background: var(--switcher-bg);
-    backdrop-filter: blur(40px) saturate(180%);
-    -webkit-backdrop-filter: blur(40px) saturate(180%);
+  /* =================================================================
+     ============================ SCHEMES ============================
+     ================================================================= */
+
+  /* ============== Settings menu (per-popover) ============== */
+  .settings-menu {
+    position: absolute; top: 32px; right: 8px;
+    width: 232px; z-index: 10;
+    background: var(--popover-bg);
+    backdrop-filter: var(--popover-backdrop, none);
+    -webkit-backdrop-filter: var(--popover-backdrop, none);
     border: 0.5px solid var(--divider);
-    border-radius: 10px;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.18), 0 2px 6px rgba(0,0,0,0.08);
-    padding: 6px;
-    z-index: 50;
-    opacity: 0;
-    transform: translateY(-4px) scale(0.96);
+    border-radius: 12px;
+    box-shadow: 0 14px 36px rgba(0,0,0,0.30), 0 1px 0 rgba(255,255,255,0.05) inset;
+    padding: 0;
+    opacity: 0; transform: translateY(-6px) scale(0.97);
+    transform-origin: top right;
     pointer-events: none;
-    transition: opacity 180ms var(--ease), transform 180ms var(--ease);
-  }
-  .switcher-popover.open {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-    pointer-events: auto;
-  }
-  .switcher-section {
-    padding: 6px 4px;
-  }
-  .switcher-section + .switcher-section {
-    border-top: 0.5px solid var(--divider);
-    margin-top: 2px;
-  }
-  .switcher-label {
-    font-size: var(--text-10);
-    color: var(--text-tertiary);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    font-weight: 500;
-    padding: 0 8px 6px;
-  }
-  .switcher-options {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 4px;
-  }
-  .switcher-opt {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-    padding: 6px 4px;
-    border-radius: 7px;
-    transition: background 160ms var(--ease);
-    position: relative;
-  }
-  .switcher-opt:hover { background: var(--icon-hover-bg); }
-  .switcher-opt.active { background: var(--switcher-active-bg); }
-  .switcher-opt-name {
-    font-size: var(--text-11);
-    color: var(--text-primary);
-    font-weight: 500;
-  }
-  .switcher-opt.active .switcher-opt-name {
-    font-weight: 600;
-  }
-  .switcher-opt.active::after {
-    content: "";
-    position: absolute;
-    top: 4px; right: 4px;
-    width: 5px; height: 5px;
-    border-radius: 50%;
-    background: var(--accent);
-  }
-  /* Theme preview swatches */
-  .opt-swatch {
-    width: 28px; height: 18px;
-    border-radius: 4px;
-    border: 0.5px solid var(--divider);
+    transition: opacity 180ms ease, transform 180ms cubic-bezier(.32,.72,0,1);
+    font-family: var(--font-sans);
     overflow: hidden;
-    position: relative;
   }
-  .opt-swatch[data-pv="b"] {
-    background: linear-gradient(135deg, oklch(0.97 0.005 250) 0%, oklch(0.94 0.01 250) 100%);
-  }
-  .opt-swatch[data-pv="b"]::after {
-    content: ""; position: absolute; bottom: 3px; left: 3px;
-    width: 8px; height: 2px; background: oklch(0.55 0.20 240); border-radius: 1px;
-  }
-  .opt-swatch[data-pv="d"] {
-    background: linear-gradient(135deg, #ffd6a5 0%, #c8a5d4 50%, #a0c4ff 100%);
-  }
-  .opt-swatch[data-pv="f"] {
-    background: oklch(0.985 0 0);
-    border: 0.5px solid oklch(0.85 0 0);
-  }
-  .opt-swatch[data-pv="f"]::after {
-    content: ""; position: absolute; bottom: 3px; left: 3px;
-    width: 8px; height: 2px; background: oklch(0.15 0 0); border-radius: 1px;
-  }
-
-  .opt-mode-glyph {
-    width: 28px; height: 18px;
-    border-radius: 4px;
-    border: 0.5px solid var(--divider);
-    display: grid;
-    place-items: center;
-    font-size: 11px;
-  }
-  .opt-mode-glyph.light { background: oklch(0.98 0 0); color: oklch(0.65 0.10 60); }
-  .opt-mode-glyph.dark { background: oklch(0.15 0 0); color: oklch(0.85 0.05 240); }
-  .opt-mode-glyph.auto {
-    background: linear-gradient(90deg, oklch(0.98 0 0) 50%, oklch(0.15 0 0) 50%);
-    color: oklch(0.55 0 0);
-  }
-
-  /* ============================================================
-     INSTRUCTION RIBBON (only shown in demo)
-     ============================================================ */
-  .demo-banner {
-    position: fixed;
-    bottom: 24px; left: 50%;
-    transform: translateX(-50%);
-    background: oklch(0.18 0 0 / 0.85);
-    color: oklch(0.95 0 0);
-    backdrop-filter: blur(30px);
-    -webkit-backdrop-filter: blur(30px);
-    border: 0.5px solid oklch(1 0 0 / 0.1);
-    padding: 10px 16px;
-    border-radius: 999px;
-    font-size: 12px;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
-    z-index: 200;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-  .demo-banner kbd {
-    background: oklch(1 0 0 / 0.12);
-    border: 0.5px solid oklch(1 0 0 / 0.18);
-    border-radius: 4px;
-    padding: 1px 6px;
+  .settings-menu.open { opacity: 1; transform: none; pointer-events: auto; }
+  .menu-section { padding: 10px 10px 8px; }
+  .menu-section + .menu-section { border-top: 0.5px solid var(--divider); }
+  .menu-label {
     font-family: var(--font-mono);
-    font-size: 10px;
+    font-size: 9px; letter-spacing: 0.7px; text-transform: uppercase;
+    color: var(--text-tertiary); margin-bottom: 7px;
   }
-
-  /* ============================================================
-     THEME B · macOS Native Light
-     ============================================================ */
-  [data-theme="b"][data-mode="light"] {
-    --font-sans: -apple-system, "SF Pro Text", "PingFang SC", "Helvetica Neue", sans-serif;
-    --font-mono: ui-monospace, "SF Mono", "Menlo", monospace;
-    --brand-tracking: -0.1px;
-
-    --stage:
-      radial-gradient(ellipse at 20% 0%, oklch(0.85 0.10 250 / 0.85) 0%, transparent 55%),
-      radial-gradient(ellipse at 80% 100%, oklch(0.82 0.10 30 / 0.85) 0%, transparent 50%),
-      radial-gradient(ellipse at 50% 50%, oklch(0.88 0.06 320 / 0.5) 0%, transparent 70%),
-      oklch(0.93 0.02 260);
-
-    --menubar-bg: oklch(1 0 0 / 0.7);
-    --menubar-border: oklch(0 0 0 / 0.08);
-    --menubar-text: oklch(0.20 0 0);
-
-    --popover-bg: oklch(0.97 0.005 250);
-    --popover-backdrop: none;
-    --popover-border: 0.5px solid oklch(0 0 0 / 0.1);
-    --popover-radius: 12px;
-    --popover-shadow: none;
-
-    --text-primary: oklch(0.18 0.005 250);
-    --text-secondary: oklch(0.42 0.008 250);
-    --text-tertiary: oklch(0.58 0.005 250);
-    --divider: oklch(0 0 0 / 0.08);
-
-    --accent: oklch(0.55 0.18 250);
-    --brand-color: oklch(0.55 0.18 250);
-
-    --hero-size: 28px;
-    --hero-bg: transparent;
-
-    --delta-color: oklch(0.50 0.15 145);
-    --delta-bg: oklch(0.95 0.05 145);
-    --delta-border: oklch(0.85 0.08 145);
-
-    --tabs-bg: oklch(0 0 0 / 0.06);
-    --tab-active-bg: oklch(1 0 0);
-    --tab-active-shadow: 0 1px 3px oklch(0 0 0 / 0.1);
-
-    --bar-color: oklch(0.55 0.18 250 / 0.4);
-    --bar-peak-color: oklch(0.55 0.18 250 / 0.7);
-    --bar-today-color: oklch(0.55 0.18 250);
-
-    --row-hover: oklch(0 0 0 / 0.03);
-    --model-bar-bg: oklch(0 0 0 / 0.06);
-    --model-gpt: oklch(0.62 0.18 145);
-    --model-opus: oklch(0.55 0.22 305);
-    --model-sonnet: oklch(0.70 0.17 50);
-    --model-haiku: oklch(0.55 0.005 250);
-
-    --footer-bg: oklch(0 0 0 / 0.025);
-    --keybind-bg: oklch(1 0 0);
-    --keybind-border: oklch(0 0 0 / 0.1);
-
-    --icon-hover-bg: oklch(0 0 0 / 0.05);
-    --switcher-bg: oklch(1 0 0 / 0.85);
-    --switcher-active-bg: oklch(0.55 0.18 250 / 0.1);
+  .menu-seg {
+    display: grid; grid-auto-flow: column; grid-auto-columns: 1fr;
+    background: var(--menu-seg-bg, rgba(0,0,0,0.05));
+    border-radius: 8px; padding: 2px; gap: 0;
   }
-
-  /* ============================================================
-     THEME B · macOS Native Dark
-     ============================================================ */
-  [data-theme="b"][data-mode="dark"] {
-    --font-sans: -apple-system, "SF Pro Text", "PingFang SC", "Helvetica Neue", sans-serif;
-    --font-mono: ui-monospace, "SF Mono", "Menlo", monospace;
-
-    --stage:
-      radial-gradient(ellipse at 20% 0%, oklch(0.30 0.10 250 / 0.7) 0%, transparent 55%),
-      radial-gradient(ellipse at 80% 100%, oklch(0.32 0.08 305 / 0.7) 0%, transparent 50%),
-      oklch(0.16 0.02 260);
-
-    --menubar-bg: oklch(0.20 0.01 250 / 0.85);
-    --menubar-border: oklch(1 0 0 / 0.08);
-    --menubar-text: oklch(0.95 0.005 250);
-
-    --popover-bg: oklch(0.22 0.012 250);
-    --popover-backdrop: none;
-    --popover-border: 0.5px solid oklch(1 0 0 / 0.12);
-    --popover-radius: 12px;
-    --popover-shadow: none;
-
-    --text-primary: oklch(0.96 0.005 250);
-    --text-secondary: oklch(0.78 0.008 250);
-    --text-tertiary: oklch(0.62 0.008 250);
-    --divider: oklch(1 0 0 / 0.1);
-
-    --accent: oklch(0.68 0.20 250);
-    --brand-color: oklch(0.78 0.18 250);
-
-    --hero-size: 28px;
-    --hero-bg: transparent;
-
-    --delta-color: oklch(0.78 0.20 145);
-    --delta-bg: oklch(0.30 0.10 145 / 0.3);
-    --delta-border: oklch(0.50 0.15 145 / 0.4);
-
-    --tabs-bg: oklch(1 0 0 / 0.08);
-    --tab-active-bg: oklch(1 0 0 / 0.15);
-    --tab-active-shadow: 0 1px 3px oklch(0 0 0 / 0.3);
-
-    --bar-color: oklch(0.68 0.20 250 / 0.4);
-    --bar-peak-color: oklch(0.68 0.20 250 / 0.75);
-    --bar-today-color: oklch(0.68 0.20 250);
-
-    --row-hover: oklch(1 0 0 / 0.04);
-    --model-bar-bg: oklch(1 0 0 / 0.08);
-    --model-gpt: oklch(0.72 0.20 145);
-    --model-opus: oklch(0.72 0.22 305);
-    --model-sonnet: oklch(0.78 0.18 50);
-    --model-haiku: oklch(0.65 0.008 250);
-
-    --footer-bg: oklch(1 0 0 / 0.03);
-    --keybind-bg: oklch(1 0 0 / 0.08);
-    --keybind-border: oklch(1 0 0 / 0.1);
-
-    --icon-hover-bg: oklch(1 0 0 / 0.08);
-    --switcher-bg: oklch(0.22 0.012 250 / 0.92);
-    --switcher-active-bg: oklch(0.68 0.20 250 / 0.18);
+  .menu-seg-btn {
+    background: transparent; border: 0; cursor: pointer;
+    padding: 6px 4px;
+    font: 500 11px var(--font-sans);
+    color: var(--text-secondary);
+    border-radius: 6px;
+    display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+    transition: background 150ms ease, color 150ms ease, box-shadow 150ms ease;
+    white-space: nowrap;
   }
+  .menu-seg-btn:hover { color: var(--text-primary); }
+  .menu-seg-btn.active {
+    background: var(--popover-bg);
+    color: var(--text-primary);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.08), 0 0 0 0.5px var(--divider);
+  }
+  .menu-seg-btn svg { width: 11px; height: 11px; flex: none; }
+  .menu-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 6px 2px; gap: 10px;
+    font-size: 12px; color: var(--text-primary);
+  }
+  .menu-row .lhs { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
+  .menu-row .lhs svg { width: 13px; height: 13px; color: var(--text-tertiary); flex: none; }
+  .menu-toggle {
+    width: 30px; height: 18px; border-radius: 999px; flex: none;
+    background: rgba(120,120,128,0.30);
+    position: relative; cursor: pointer; border: 0; padding: 0;
+    transition: background 200ms;
+  }
+  .menu-toggle::after {
+    content: ""; position: absolute; top: 2px; left: 2px;
+    width: 14px; height: 14px; border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.20), 0 0.5px 0 rgba(0,0,0,0.04);
+    transition: transform 200ms cubic-bezier(.32,.72,0,1);
+  }
+  .menu-toggle.on { background: var(--accent); }
+  .menu-toggle.on::after { transform: translateX(12px); }
+  .scheme-dot {
+    width: 9px; height: 9px; border-radius: 50%;
+    background: var(--swatch);
+    box-shadow: 0 0 0 0.5px rgba(0,0,0,0.10);
+    flex: none;
+  }
+  .budget-row { padding-bottom: 2px; }
+  .budget-controls { display: inline-flex; align-items: center; gap: 8px; }
+  .budget-pill {
+    font: 600 11px var(--font-mono);
+    color: var(--text-primary);
+    background: var(--menu-seg-bg, rgba(0,0,0,0.05));
+    border-radius: 999px;
+    padding: 3px 8px;
+    cursor: pointer;
+    border: 0.5px solid var(--divider);
+  }
+  .budget-pill:hover { color: var(--accent); }
+  .menu-hint {
+    font-size: 10px; color: var(--text-tertiary);
+    padding: 2px 2px 2px;
+    line-height: 1.4;
+  }
+  .icon-btn.active { background: var(--icon-hover-bg); color: var(--text-primary); }
 
-  /* ============================================================
-     THEME D · Colorful Light
-     ============================================================ */
-  [data-theme="d"][data-mode="light"] {
-    --font-sans: -apple-system, "SF Pro Rounded", system-ui, "PingFang SC", sans-serif;
+  /* ---- BUSINESS · macOS Liquid Glass ---- */
+  /* Soft cool gradient stage; popover is translucent, blurred, with a
+     subtle inner highlight on top. System blue accent. SF Pro stack. */
+  body[data-scheme="business"] [data-mode="light"] {
+    --font-sans: -apple-system, "SF Pro Text", "Helvetica Neue", "PingFang SC", system-ui, sans-serif;
     --font-mono: ui-monospace, "SF Mono", "Menlo", monospace;
 
-    --stage:
-      radial-gradient(ellipse at 12% 18%, oklch(0.92 0.08 60 / 0.9) 0%, transparent 50%),
-      radial-gradient(ellipse at 88% 75%, oklch(0.88 0.10 250 / 0.85) 0%, transparent 50%),
-      radial-gradient(ellipse at 50% 50%, oklch(0.93 0.07 145 / 0.6) 0%, transparent 60%),
-      oklch(0.97 0.01 80);
-
-    --menubar-bg: oklch(1 0 0 / 0.85);
-    --menubar-border: oklch(0 0 0 / 0.06);
-    --menubar-text: oklch(0.22 0.01 280);
-
-    --popover-bg: oklch(1 0 0);
-    --popover-backdrop: none;
-    --popover-border: 0.5px solid oklch(0 0 0 / 0.04);
-    --popover-radius: 24px;
-    --popover-shadow:
-      0 0 0 1px oklch(0 0 0 / 0.02),
-      0 20px 50px oklch(0.40 0.10 320 / 0.18),
-      0 6px 20px oklch(0.40 0.10 320 / 0.08);
-
-    --text-primary: oklch(0.25 0.02 280);
-    --text-secondary: oklch(0.50 0.01 280);
-    --text-tertiary: oklch(0.62 0.01 280);
-    --divider: oklch(0 0 0 / 0.06);
-
-    --accent: oklch(0.65 0.20 350);
-    --brand-color: oklch(0.65 0.20 350);
-
-    --hero-bg:
-      linear-gradient(135deg,
-        oklch(0.75 0.18 30) 0%,
-        oklch(0.70 0.20 350) 50%,
-        oklch(0.68 0.18 280) 100%);
-    --hero-value-color: oklch(1 0 0);
-    --hero-label-color: oklch(1 0 0 / 0.92);
-    --hero-sub-color: oklch(1 0 0 / 0.92);
-    --hero-size: 32px;
-    --hero-weight: 700;
-
-    --delta-color: oklch(1 0 0);
-    --delta-bg: oklch(1 0 0 / 0.25);
-    --delta-border: transparent;
-
-    --tabs-bg: oklch(0.95 0.01 60);
-    --tab-active-bg: oklch(1 0 0);
-    --tab-active-shadow: 0 1px 3px oklch(0 0 0 / 0.08);
-
-    --bar-color: oklch(0.70 0.18 350 / 0.4);
-    --bar-peak-color: oklch(0.65 0.22 350 / 0.85);
-    --bar-today-color: oklch(0.65 0.20 280);
-
-    --row-hover: oklch(0.96 0.02 60);
-    --model-bar-bg: oklch(0.95 0.01 60);
-    --model-gpt: oklch(0.65 0.18 145);
-    --model-opus: oklch(0.62 0.20 305);
-    --model-sonnet: oklch(0.72 0.17 50);
-    --model-haiku: oklch(0.68 0.02 280);
-
-    --footer-bg: oklch(0.98 0.005 80);
-    --keybind-bg: oklch(1 0 0);
-    --keybind-border: oklch(0 0 0 / 0.08);
-
-    --icon-hover-bg: oklch(0.95 0.02 60);
-    --icon-radius: 8px;
-    --switcher-bg: oklch(1 0 0 / 0.95);
-    --switcher-active-bg: oklch(0.95 0.05 350);
-  }
-
-  /* ============================================================
-     THEME D · Colorful Dark
-     ============================================================ */
-  [data-theme="d"][data-mode="dark"] {
-    --font-sans: -apple-system, "SF Pro Rounded", system-ui, "PingFang SC", sans-serif;
-    --font-mono: ui-monospace, "SF Mono", "Menlo", monospace;
-
-    --stage:
-      radial-gradient(ellipse at 12% 18%, oklch(0.30 0.18 30 / 0.45) 0%, transparent 50%),
-      radial-gradient(ellipse at 88% 75%, oklch(0.30 0.18 250 / 0.45) 0%, transparent 50%),
-      radial-gradient(ellipse at 50% 50%, oklch(0.30 0.15 320 / 0.4) 0%, transparent 60%),
-      oklch(0.13 0.02 280);
-
-    --menubar-bg: oklch(0.15 0.02 280 / 0.95);
-    --menubar-border: oklch(1 0 0 / 0.06);
-    --menubar-text: oklch(0.92 0.01 280);
-
-    --popover-bg: oklch(0.16 0.015 280);
-    --popover-backdrop: none;
-    --popover-border: 0.5px solid oklch(1 0 0 / 0.06);
-    --popover-radius: 24px;
-    --popover-shadow: none;
-
-    --text-primary: oklch(0.94 0.01 280);
-    --text-secondary: oklch(0.72 0.01 280);
-    --text-tertiary: oklch(0.58 0.008 280);
-    --divider: oklch(1 0 0 / 0.06);
-
-    --accent: oklch(0.72 0.22 350);
-    --brand-color: oklch(0.78 0.20 350);
-
-    --hero-bg:
-      linear-gradient(135deg,
-        oklch(0.65 0.22 30) 0%,
-        oklch(0.62 0.24 350) 50%,
-        oklch(0.62 0.22 280) 100%);
-    --hero-value-color: oklch(1 0 0);
-    --hero-label-color: oklch(1 0 0 / 0.92);
-    --hero-sub-color: oklch(1 0 0 / 0.92);
-    --hero-size: 32px;
-    --hero-weight: 700;
-
-    --delta-color: oklch(1 0 0);
-    --delta-bg: oklch(1 0 0 / 0.22);
-    --delta-border: transparent;
-
-    --tabs-bg: oklch(1 0 0 / 0.05);
-    --tab-active-bg: oklch(1 0 0 / 0.12);
-    --tab-active-shadow: 0 1px 3px oklch(0 0 0 / 0.3);
-
-    --bar-color: oklch(0.72 0.22 350 / 0.4);
-    --bar-peak-color: oklch(0.65 0.25 350 / 0.85);
-    --bar-today-color: oklch(0.72 0.22 280);
-
-    --row-hover: oklch(1 0 0 / 0.04);
-    --model-bar-bg: oklch(1 0 0 / 0.06);
-    --model-gpt: oklch(0.72 0.20 145);
-    --model-opus: oklch(0.72 0.22 305);
-    --model-sonnet: oklch(0.78 0.20 50);
-    --model-haiku: oklch(0.62 0.01 280);
-
-    --footer-bg: oklch(1 0 0 / 0.02);
-    --keybind-bg: oklch(1 0 0 / 0.08);
-    --keybind-border: oklch(1 0 0 / 0.08);
-
-    --icon-hover-bg: oklch(1 0 0 / 0.08);
-    --icon-radius: 8px;
-    --switcher-bg: oklch(0.20 0.015 280 / 0.97);
-    --switcher-active-bg: oklch(0.65 0.22 350 / 0.22);
-  }
-
-  /* ============================================================
-     THEME F · Linear / Vercel SaaS Light
-     ============================================================ */
-  [data-theme="f"][data-mode="light"] {
-    --font-sans: -apple-system, system-ui, "Helvetica Neue", "PingFang SC", sans-serif;
-    --font-mono: ui-monospace, "SF Mono", "Menlo", monospace;
-    --brand-tracking: -0.2px;
-
-    --stage:
-      linear-gradient(180deg, oklch(0.985 0 0) 0%, oklch(0.96 0 0) 100%),
-      oklch(0.985 0 0);
-
-    --menubar-bg: oklch(1 0 0 / 0.88);
-    --menubar-border: oklch(0 0 0 / 0.06);
-    --menubar-text: oklch(0.18 0 0);
-
-    --popover-bg: oklch(1 0 0);
-    --popover-backdrop: none;
-    --popover-border: 1px solid oklch(0.92 0 0);
+    --popover-bg: rgba(255, 255, 255, 0.62);
+    --popover-backdrop: blur(40px) saturate(180%);
+    --popover-border: 0.5px solid rgba(0, 0, 0, 0.10);
     --popover-radius: 14px;
     --popover-shadow:
-      0 0 0 1px oklch(0 0 0 / 0.02),
-      0 12px 32px oklch(0 0 0 / 0.08),
-      0 4px 12px oklch(0 0 0 / 0.04);
+      inset 0 1px 0 rgba(255,255,255,0.7),
+      inset 0 0 0 0.5px rgba(255,255,255,0.4);
 
-    --text-primary: oklch(0.18 0 0);
-    --text-secondary: oklch(0.45 0 0);
-    --text-tertiary: oklch(0.58 0 0);
-    --divider: oklch(0.92 0 0);
+    --header-bg: rgba(255, 255, 255, 0.30);
+    --footer-bg: rgba(255, 255, 255, 0.30);
 
-    --accent: oklch(0.18 0 0);
-    --brand-color: oklch(0.18 0 0);
+    --text-primary: #1c1d1f;
+    --text-secondary: #3c3e44;
+    --text-tertiary: #6b6e76;
+    --text-quat: #9b9ea5;
+    --divider: rgba(0, 0, 0, 0.10);
+    --hairline: rgba(0, 0, 0, 0.06);
+    --rule-strong: rgba(0, 0, 0, 0.4);
 
-    --hero-size: 32px;
-    --hero-weight: 600;
-    --hero-bg: transparent;
+    --pos: #28a745;
+    --neg: #d33b3b;
+    --neu: #6b6e76;
+    --accent: #0a84ff;
+    --brand-color: #0a84ff;
 
-    --delta-color: oklch(0.55 0.15 145);
-    --delta-bg: oklch(0.97 0.04 145);
-    --delta-border: oklch(0.90 0.06 145);
+    --bar-color: rgba(10, 132, 255, 0.30);
+    --bar-peak-color: rgba(10, 132, 255, 0.60);
+    --bar-today-color: #0a84ff;
+    --grid-color: rgba(0, 0, 0, 0.05);
+    --bar-radius: 1.5px;
 
-    --tabs-bg: oklch(0.96 0 0);
-    --tabs-border: 0.5px solid oklch(0.92 0 0);
-    --tab-active-bg: oklch(0.92 0 0);
-    --tab-active-shadow: 0 1px 2px oklch(0 0 0 / 0.06), 0 0 0 1px oklch(0 0 0 / 0.04);
+    --row-hover: rgba(0, 0, 0, 0.03);
+    --model-bar-bg: rgba(0, 0, 0, 0.06);
+    --model-gpt: #28a745;
+    --model-opus: #af52de;
+    --model-sonnet: #ff9500;
+    --model-haiku: #8e8e93;
 
-    --bar-color: oklch(0.18 0 0);
-    --bar-peak-color: oklch(0.18 0 0);
-    --bar-today-color: oklch(0.18 0 0);
-
-    --row-hover: oklch(0.97 0 0);
-    --model-bar-bg: oklch(0.94 0 0);
-    --model-gpt: oklch(0.55 0.16 145);
-    --model-opus: oklch(0.50 0.20 305);
-    --model-sonnet: oklch(0.65 0.18 50);
-    --model-haiku: oklch(0.55 0 0);
-
-    --footer-bg: oklch(0.98 0 0);
-    --keybind-bg: oklch(1 0 0);
-    --keybind-border: oklch(0.92 0 0);
-
-    --icon-hover-bg: oklch(0.94 0 0);
-    --switcher-bg: oklch(1 0 0);
-    --switcher-active-bg: oklch(0.94 0 0);
+    --icon-hover-bg: rgba(0, 0, 0, 0.05);
+    --tab-rule-radius: 1px;
+    --share-radius: 1.5px;
+  }
+  body[data-scheme="business"] .frame[data-mode-host="light"] {
+    --frame-stage: radial-gradient(120% 80% at 30% 10%, #cfe1ff 0%, transparent 60%),
+                   radial-gradient(100% 70% at 80% 90%, #ffd7e6 0%, transparent 60%),
+                   linear-gradient(180deg, #e8edf6 0%, #dfe5f0 100%);
+    --frame-radius: 14px;
   }
 
-  /* ============================================================
-     THEME F · Linear / Vercel SaaS Dark
-     ============================================================ */
-  [data-theme="f"][data-mode="dark"] {
-    --font-sans: -apple-system, system-ui, "Helvetica Neue", "PingFang SC", sans-serif;
+  body[data-scheme="business"] [data-mode="dark"] {
+    --font-sans: -apple-system, "SF Pro Text", "Helvetica Neue", "PingFang SC", system-ui, sans-serif;
     --font-mono: ui-monospace, "SF Mono", "Menlo", monospace;
-    --brand-tracking: -0.2px;
 
-    --stage:
-      linear-gradient(180deg, oklch(0.10 0 0) 0%, oklch(0.07 0 0) 100%),
-      oklch(0.07 0 0);
-
-    --menubar-bg: oklch(0.10 0 0 / 0.88);
-    --menubar-border: oklch(1 0 0 / 0.06);
-    --menubar-text: oklch(0.94 0 0);
-
-    --popover-bg: oklch(0.14 0 0);
-    --popover-backdrop: none;
-    --popover-border: 1px solid oklch(0.20 0 0);
+    --popover-bg: rgba(28, 30, 36, 0.55);
+    --popover-backdrop: blur(40px) saturate(180%);
+    --popover-border: 0.5px solid rgba(255, 255, 255, 0.10);
     --popover-radius: 14px;
     --popover-shadow:
-      0 0 0 1px oklch(1 0 0 / 0.04),
-      0 12px 32px oklch(0 0 0 / 0.6),
-      0 4px 12px oklch(0 0 0 / 0.4);
+      inset 0 1px 0 rgba(255,255,255,0.06),
+      inset 0 0 0 0.5px rgba(255,255,255,0.04);
 
-    --text-primary: oklch(0.94 0 0);
-    --text-secondary: oklch(0.70 0 0);
-    --text-tertiary: oklch(0.55 0 0);
-    --divider: oklch(0.22 0 0);
+    --header-bg: rgba(255, 255, 255, 0.04);
+    --footer-bg: rgba(255, 255, 255, 0.04);
 
-    --accent: oklch(0.94 0 0);
-    --brand-color: oklch(0.94 0 0);
+    --text-primary: #f3f4f7;
+    --text-secondary: #b9bcc4;
+    --text-tertiary: #7c8088;
+    --text-quat: #5a5d65;
+    --divider: rgba(255, 255, 255, 0.10);
+    --hairline: rgba(255, 255, 255, 0.05);
+    --rule-strong: rgba(255, 255, 255, 0.30);
 
-    --hero-size: 32px;
-    --hero-weight: 600;
-    --hero-bg: transparent;
+    --pos: #34d058;
+    --neg: #ff6b5e;
+    --neu: #8b8e96;
+    --accent: #5ea8ff;
+    --brand-color: #5ea8ff;
 
-    --delta-color: oklch(0.78 0.20 145);
-    --delta-bg: oklch(0.20 0.08 145 / 0.5);
-    --delta-border: oklch(0.40 0.12 145 / 0.5);
+    --bar-color: rgba(94, 168, 255, 0.30);
+    --bar-peak-color: rgba(94, 168, 255, 0.60);
+    --bar-today-color: #5ea8ff;
+    --grid-color: rgba(255, 255, 255, 0.05);
+    --bar-radius: 1.5px;
 
-    --tabs-bg: oklch(0.18 0 0);
-    --tabs-border: 0.5px solid oklch(0.22 0 0);
-    --tab-active-bg: oklch(0.25 0 0);
-    --tab-active-shadow: 0 1px 2px oklch(0 0 0 / 0.4), 0 0 0 1px oklch(1 0 0 / 0.06);
+    --row-hover: rgba(255, 255, 255, 0.04);
+    --model-bar-bg: rgba(255, 255, 255, 0.08);
+    --model-gpt: #34d058;
+    --model-opus: #c97cff;
+    --model-sonnet: #ffaa3a;
+    --model-haiku: #8b8e96;
 
-    --bar-color: oklch(0.94 0 0);
-    --bar-peak-color: oklch(0.94 0 0);
-    --bar-today-color: oklch(0.94 0 0);
+    --icon-hover-bg: rgba(255, 255, 255, 0.07);
+    --tab-rule-radius: 1px;
+    --share-radius: 1.5px;
+  }
+  body[data-scheme="business"] .frame[data-mode-host="dark"] {
+    --frame-stage:
+      radial-gradient(120% 80% at 25% 15%, rgba(94, 168, 255, 0.30) 0%, transparent 60%),
+      radial-gradient(100% 70% at 80% 90%, rgba(180, 90, 255, 0.20) 0%, transparent 60%),
+      linear-gradient(180deg, #14161d 0%, #0c0d12 100%);
+    --frame-radius: 14px;
+  }
 
-    --row-hover: oklch(0.18 0 0);
-    --model-bar-bg: oklch(0.22 0 0);
-    --model-gpt: oklch(0.72 0.18 145);
-    --model-opus: oklch(0.65 0.22 305);
-    --model-sonnet: oklch(0.75 0.18 50);
-    --model-haiku: oklch(0.55 0 0);
+  /* ---- VIBRANT · Sunset Aurora ---- */
+  /* Pink→magenta→indigo gradient on the hero panel itself; rest of the
+     popover is clean white/dark. Card stands out, chart picks up magenta. */
+  body[data-scheme="vibrant"] [data-mode="light"] {
+    --font-sans: -apple-system, "SF Pro Text", "PingFang SC", "Helvetica Neue", system-ui, sans-serif;
+    --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
 
-    --footer-bg: oklch(0.12 0 0);
-    --keybind-bg: oklch(0.18 0 0);
-    --keybind-border: oklch(0.25 0 0);
+    /* Vibrant — Figma palette. */
+    --popover-bg: #ffffff;
+    --popover-backdrop: none;
+    --popover-border: 0.5px solid rgba(0, 0, 0, 0.12);
+    --popover-radius: 14px;
+    --popover-shadow: none;
 
-    --icon-hover-bg: oklch(0.20 0 0);
-    --switcher-bg: oklch(0.16 0 0);
-    --switcher-active-bg: oklch(0.22 0 0);
+    --header-bg: transparent;
+    --footer-bg: rgba(0, 0, 0, 0.03);
+
+    --text-primary: #000000;
+    --text-secondary: #262626;
+    --text-tertiary: #666666;
+    --text-quat: #9c9c9c;
+    --divider: rgba(0, 0, 0, 0.10);
+    --hairline: rgba(0, 0, 0, 0.06);
+    --rule-strong: rgba(0, 0, 0, 0.55);
+
+    --pos: #1f8f5a;
+    --neg: #e23429;
+    --neu: #666666;
+    --accent: #ff3d8b;
+    --brand-color: #ff3d8b;
+
+    --bar-color: rgba(255, 61, 139, 0.22);
+    --bar-peak-color: #ff3d8b;
+    --bar-today-color: #000000;
+    --grid-color: rgba(0, 0, 0, 0.06);
+    --bar-radius: 0;
+
+    --row-hover: rgba(255, 61, 139, 0.06);
+    --model-bar-bg: rgba(0, 0, 0, 0.08);
+    --model-gpt: #1f8f5a;
+    --model-opus: #ff3d8b;
+    --model-sonnet: #d97a2a;
+    --model-haiku: #1f1d3d;
+
+    --icon-hover-bg: rgba(0, 0, 0, 0.06);
+    --accent-bar-radius: 0;
+    --tab-rule-radius: 0;
+    --share-radius: 0;
+    --dot-radius: 0;
+
+    --strip-bg: #ff3d8b;
+    --strip-overlay: radial-gradient(120% 80% at 80% 0%, rgba(255, 255, 255, 0.10) 0%, transparent 55%);
+    --strip-text: #ffffff;
+    --strip-label-color: rgba(255, 255, 255, 0.80);
+    --strip-value-color: #ffffff;
+    --strip-key-color: rgba(255, 255, 255, 0.68);
+    --strip-muted-color: rgba(255, 255, 255, 0.76);
+    --strip-sub-color: rgba(255, 255, 255, 0.56);
+    --strip-divider: rgba(255, 255, 255, 0.22);
+    --strip-accent-bar: #ffffff;
+    --strip-pos: #c9efd9;
+    --strip-neg: #fbd9d4;
+  }
+  body[data-scheme="vibrant"] .frame[data-mode-host="light"] {
+    --frame-stage: #f7f7f5;
+    --frame-radius: 14px;
+  }
+
+  body[data-scheme="vibrant"] [data-mode="dark"] {
+    --font-sans: -apple-system, "SF Pro Text", "PingFang SC", "Helvetica Neue", system-ui, sans-serif;
+    --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+
+    /* Vibrant — Figma dark variant. */
+    --popover-bg: #000000;
+    --popover-backdrop: none;
+    --popover-border: 0.5px solid rgba(255, 255, 255, 0.10);
+    --popover-radius: 14px;
+    --popover-shadow: none;
+
+    --header-bg: transparent;
+    --footer-bg: rgba(255, 255, 255, 0.03);
+
+    --text-primary: #ffffff;
+    --text-secondary: #bdbdbd;
+    --text-tertiary: #7a7a7a;
+    --text-quat: #4a4a4a;
+    --divider: rgba(255, 255, 255, 0.10);
+    --hairline: rgba(255, 255, 255, 0.05);
+    --rule-strong: rgba(255, 255, 255, 0.32);
+
+    --pos: #4ec593;
+    --neg: #ff5544;
+    --neu: #7a7a7a;
+    --accent: #ff3d8b;
+    --brand-color: #ff3d8b;
+
+    --bar-color: rgba(255, 61, 139, 0.30);
+    --bar-peak-color: #ff3d8b;
+    --bar-today-color: #ffffff;
+    --grid-color: rgba(255, 255, 255, 0.06);
+    --bar-radius: 0;
+
+    --row-hover: rgba(255, 61, 139, 0.10);
+    --model-bar-bg: rgba(255, 255, 255, 0.08);
+    --model-gpt: #4ec593;
+    --model-opus: #ff3d8b;
+    --model-sonnet: #f29850;
+    --model-haiku: #ffffff;
+
+    --icon-hover-bg: rgba(255, 255, 255, 0.06);
+    --accent-bar-radius: 0;
+    --tab-rule-radius: 0;
+    --share-radius: 0;
+    --dot-radius: 0;
+
+    --strip-bg: #ff3d8b;
+    --strip-overlay: radial-gradient(120% 80% at 80% 0%, rgba(255, 255, 255, 0.08) 0%, transparent 55%);
+    --strip-text: #ffffff;
+    --strip-label-color: rgba(255, 255, 255, 0.76);
+    --strip-value-color: #ffffff;
+    --strip-key-color: rgba(255, 255, 255, 0.64);
+    --strip-muted-color: rgba(255, 255, 255, 0.72);
+    --strip-sub-color: rgba(255, 255, 255, 0.54);
+    --strip-divider: rgba(255, 255, 255, 0.20);
+    --strip-accent-bar: #ffffff;
+    --strip-pos: #c9efd9;
+    --strip-neg: #fbd9d4;
+  }
+  body[data-scheme="vibrant"] .frame[data-mode-host="dark"] {
+    --frame-stage: #1a1a1a;
+    --frame-radius: 14px;
+  }
+
+  /* ---- MINIMAL · Soft Cloud ---- */
+  /* Light gray stage, white popover, system blue accent, no blur, no
+     gradients. The "calm" option — very Stripe Dashboard / Mercury. */
+  body[data-scheme="minimal"] [data-mode="light"] {
+    --font-sans: -apple-system, "SF Pro Text", "PingFang SC", "Helvetica Neue", system-ui, sans-serif;
+    --font-mono: ui-monospace, "SF Mono", "Menlo", monospace;
+
+    --popover-bg: #ffffff;
+    --popover-backdrop: none;
+    --popover-border: 0.5px solid rgba(0, 0, 0, 0.08);
+    --popover-radius: 16px;
+    --popover-shadow: 0 1px 2px rgba(0,0,0,0.04);
+
+    --header-bg: transparent;
+    --footer-bg: #f7f8fa;
+
+    --text-primary: #15171c;
+    --text-secondary: #3a3d44;
+    --text-tertiary: #6c707a;
+    --text-quat: #9ca0aa;
+    --divider: rgba(0, 0, 0, 0.07);
+    --hairline: rgba(0, 0, 0, 0.04);
+    --rule-strong: rgba(0, 0, 0, 0.4);
+
+    --pos: #16a34a;
+    --neg: #dc2626;
+    --neu: #6c707a;
+    --accent: #2563eb;
+    --brand-color: #2563eb;
+
+    --bar-color: #dbe5f5;
+    --bar-peak-color: #93b4ee;
+    --bar-today-color: #2563eb;
+    --grid-color: rgba(0, 0, 0, 0.04);
+    --bar-radius: 3px;
+
+    --row-hover: rgba(0, 0, 0, 0.025);
+    --model-bar-bg: rgba(0, 0, 0, 0.05);
+    --model-gpt: #16a34a;
+    --model-opus: #7c3aed;
+    --model-sonnet: #f97316;
+    --model-haiku: #0891b2;
+
+    --icon-hover-bg: rgba(0, 0, 0, 0.04);
+    --accent-bar-radius: 2px;
+    --tab-rule-radius: 999px;
+    --share-radius: 2px;
+    --dot-radius: 50%;
+  }
+  body[data-scheme="minimal"] .frame[data-mode-host="light"] {
+    --frame-stage: #eef0f4;
+    --frame-radius: 16px;
+  }
+
+  body[data-scheme="minimal"] [data-mode="dark"] {
+    --font-sans: -apple-system, "SF Pro Text", "PingFang SC", "Helvetica Neue", system-ui, sans-serif;
+    --font-mono: ui-monospace, "SF Mono", "Menlo", monospace;
+
+    --popover-bg: #1a1c20;
+    --popover-backdrop: none;
+    --popover-border: 0.5px solid rgba(255, 255, 255, 0.08);
+    --popover-radius: 16px;
+    --popover-shadow: none;
+
+    --header-bg: transparent;
+    --footer-bg: rgba(255, 255, 255, 0.025);
+
+    --text-primary: #f3f4f7;
+    --text-secondary: #b9bcc4;
+    --text-tertiary: #7c8088;
+    --text-quat: #5a5d65;
+    --divider: rgba(255, 255, 255, 0.08);
+    --hairline: rgba(255, 255, 255, 0.04);
+    --rule-strong: rgba(255, 255, 255, 0.30);
+
+    --pos: #4ade80;
+    --neg: #f87171;
+    --neu: #7c8088;
+    --accent: #60a5fa;
+    --brand-color: #60a5fa;
+
+    --bar-color: rgba(96, 165, 250, 0.22);
+    --bar-peak-color: rgba(96, 165, 250, 0.55);
+    --bar-today-color: #60a5fa;
+    --grid-color: rgba(255, 255, 255, 0.05);
+    --bar-radius: 3px;
+
+    --row-hover: rgba(255, 255, 255, 0.04);
+    --model-bar-bg: rgba(255, 255, 255, 0.07);
+    --model-gpt: #4ade80;
+    --model-opus: #a78bfa;
+    --model-sonnet: #fb923c;
+    --model-haiku: #22d3ee;
+
+    --icon-hover-bg: rgba(255, 255, 255, 0.07);
+    --accent-bar-radius: 2px;
+    --tab-rule-radius: 999px;
+    --share-radius: 2px;
+    --dot-radius: 50%;
+  }
+  body[data-scheme="minimal"] .frame[data-mode-host="dark"] {
+    --frame-stage: #0e1014;
+    --frame-radius: 16px;
   }
 
   /* ============================================================
-     RESPONSIVE TWEAKS
+     D1 · Liquid Glass — visual treatment override
+     Replace solid magenta popover with translucent vibrancy.
+     A multi-stop pastel gradient lives behind the popover and
+     bleeds through. Hero strip becomes a glassy magenta→lavender
+     gradient with inner highlight. Soft drop shadow tinted in pink.
      ============================================================ */
-  @media (max-height: 700px) {
-    body { padding: 32px 16px; align-items: start; }
+  body[data-scheme="vibrant"] { font-family: -apple-system, "SF Pro Text", "PingFang SC", system-ui, sans-serif; }
+  body[data-scheme="vibrant"]:not([data-mode="dark"]),
+  body[data-scheme="vibrant"][data-mode="auto"] {
+    --stage-bg: linear-gradient(135deg, #ffd1e3 0%, #e0d4ff 30%, #d1f0e3 65%, #ffe9d1 100%) !important;
   }
+  body[data-scheme="vibrant"][data-mode="dark"] {
+    --stage-bg: linear-gradient(135deg, #2a0d1c 0%, #1c0d2a 30%, #0d2a1c 65%, #2a1c0d 100%) !important;
+  }
+  /* Always also override per data-mode-host frame stage so iframe sees both */
+  body[data-scheme="vibrant"] .frame[data-mode-host="light"] {
+    --frame-stage: linear-gradient(135deg, #ffd1e3 0%, #e0d4ff 30%, #d1f0e3 65%, #ffe9d1 100%) !important;
+  }
+  body[data-scheme="vibrant"] .frame[data-mode-host="dark"] {
+    --frame-stage: linear-gradient(135deg, #2a0d1c 0%, #1c0d2a 30%, #0d2a1c 65%, #2a1c0d 100%) !important;
+  }
+  body[data-scheme="vibrant"] .popover[data-mode="light"] {
+    background: rgba(255, 255, 255, 0.55) !important;
+    backdrop-filter: blur(40px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(40px) saturate(180%) !important;
+    border: 0.5px solid rgba(255, 255, 255, 0.55) !important;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.6),
+      0 20px 50px rgba(255, 61, 139, 0.18) !important;
+  }
+  body[data-scheme="vibrant"] .popover[data-mode="dark"] {
+    background: rgba(20, 18, 24, 0.55) !important;
+    backdrop-filter: blur(40px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(40px) saturate(180%) !important;
+    border: 0.5px solid rgba(255, 255, 255, 0.14) !important;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.10),
+      0 20px 50px rgba(0, 0, 0, 0.35) !important;
+  }
+  /* Strip gradient — pulled into the medium-tone range so white text on
+     top has comfortable contrast (the original light-pink #ff3d8b at
+     0.6+ luma made white digits perceptually muddy, hence the "looks
+     black" complaint). Same hue arc, just a darker shoulder. */
+  body[data-scheme="vibrant"] .strip {
+    background:
+      radial-gradient(ellipse at 25% 0%, rgba(255, 255, 255, 0.22) 0%, transparent 60%),
+      linear-gradient(135deg, #c4327a 0%, #8a3eb8 50%, #3d4aa3 100%) !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22) !important;
+  }
+
+  /* Hero number: pure white + soft outer glow. With the deeper gradient
+     above, white now reads as luminous instead of muddy. */
+  body[data-scheme="vibrant"] .popover[data-mode="light"] .strip-value,
+  body[data-scheme="vibrant"] .popover[data-mode="dark"] .strip-value {
+    background: none !important;
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    text-shadow:
+      0 1px 0 rgba(0, 0, 0, 0.18),
+      0 2px 6px rgba(0, 0, 0, 0.12),
+      0 0 24px rgba(255, 180, 220, 0.30) !important;
+  }
+  /* Strip cell values (cost / records / avg-call) — keep solid pure
+     white but tinted slightly warm to feel of a piece. */
+  body[data-scheme="vibrant"] .popover[data-mode="light"] .cell-val,
+  body[data-scheme="vibrant"] .popover[data-mode="dark"] .cell-val {
+    color: #fff5fa !important;
+  }
+  body[data-scheme="vibrant"] .popover[data-mode="light"] .cell-val.muted,
+  body[data-scheme="vibrant"] .popover[data-mode="dark"] .cell-val.muted {
+    color: rgba(255, 245, 250, 0.78) !important;
+  }
+  /* Strip cell values (cost / records / avg-call) — also white but
+     with a subtle warm tint to feel of a piece with the hero. */
+  body[data-scheme="vibrant"] .popover[data-mode="light"] .cell-val,
+  body[data-scheme="vibrant"] .popover[data-mode="dark"] .cell-val {
+    color: #fff5fa !important;
+  }
+  body[data-scheme="vibrant"] .popover[data-mode="light"] .cell-val.muted,
+  body[data-scheme="vibrant"] .popover[data-mode="dark"] .cell-val.muted {
+    color: rgba(255, 245, 250, 0.78) !important;
+  }
+
 </style>
 </head>
-<body>
+<body data-scheme="business">
 
-<!-- Main popover -->
-<div class="popover">
-  <header class="header">
+<div class="frame" data-mode-host="light"><div class="popover" data-mode="light"></div></div>
+
+<template id="popover-tmpl">
+  <header class="pop-header">
     <div class="brand">
-      <svg class="brand-logo" viewBox="0 0 100 100" aria-hidden="true">
-        <g fill="currentColor">
-          <rect x="20" y="60" width="6" height="18" rx="2" opacity="0.4"/>
-          <rect x="30" y="40" width="6" height="38" rx="2" opacity="0.65"/>
-          <rect x="40" y="50" width="6" height="28" rx="2" opacity="0.5"/>
-          <rect x="50" y="22" width="6" height="56" rx="2"/>
-          <rect x="60" y="35" width="6" height="43" rx="2" opacity="0.7"/>
-          <rect x="70" y="55" width="6" height="23" rx="2" opacity="0.45"/>
-          <rect x="80" y="48" width="6" height="30" rx="2" opacity="0.55"/>
-        </g>
-      </svg>
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 14 14" fill="none">
+          <rect x="1" y="9" width="2" height="4" fill="currentColor"/>
+          <rect x="4" y="6" width="2" height="7" fill="currentColor"/>
+          <rect x="7" y="2" width="2" height="11" fill="currentColor"/>
+          <rect x="10" y="7" width="2" height="6" fill="currentColor"/>
+        </svg>
+      </span>
       <span class="brand-name">TokSee</span>
-      <span class="brand-meta">· 已同步</span>
+    </div>
+    <div class="header-status">
+      <span class="live-dot" aria-hidden="true"></span>
+      <span data-role="status">SYNC · 09:42:18</span>
     </div>
     <div class="header-actions">
-      <button class="icon-btn" id="refreshBtn" title="立即刷新" aria-label="立即刷新">
-        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M14 8a6 6 0 1 1 -2.5 -4.85"/>
-          <path d="M14 2v3.5h-3.5"/>
+      <button class="icon-btn" data-role="refresh" title="刷新">
+        <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 7a5 5 0 1 1 -2.1 -4.05"/>
+          <path d="M12 1.5v3h-3"/>
         </svg>
       </button>
-      <button class="icon-btn" title="切换主题" aria-label="切换主题" id="settingsBtn" aria-haspopup="true" aria-expanded="false">
-        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
-          <line x1="2.5" y1="4" x2="13.5" y2="4"/>
-          <line x1="2.5" y1="8" x2="13.5" y2="8"/>
-          <line x1="2.5" y1="12" x2="13.5" y2="12"/>
-          <circle cx="6" cy="4" r="1.6" fill="currentColor" stroke="none"/>
-          <circle cx="11" cy="8" r="1.6" fill="currentColor" stroke="none"/>
-          <circle cx="5" cy="12" r="1.6" fill="currentColor" stroke="none"/>
+      <button class="icon-btn" title="设置">
+        <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round">
+          <line x1="2" y1="3" x2="12" y2="3"/>
+          <line x1="2" y1="7" x2="12" y2="7"/>
+          <line x1="2" y1="11" x2="12" y2="11"/>
+          <circle cx="5" cy="3" r="1.4" fill="currentColor" stroke="none"/>
+          <circle cx="10" cy="7" r="1.4" fill="currentColor" stroke="none"/>
+          <circle cx="4" cy="11" r="1.4" fill="currentColor" stroke="none"/>
         </svg>
       </button>
-
-      <!-- Switcher panel -->
-      <div class="switcher-popover" id="switcherPanel" role="menu">
-        <div class="switcher-section">
-          <div class="switcher-label">主题</div>
-          <div class="switcher-options">
-            <button class="switcher-opt" data-theme-pick="b" role="menuitemradio">
-              <div class="opt-swatch" data-pv="b"></div>
-              <div class="switcher-opt-name">Native</div>
-            </button>
-            <button class="switcher-opt" data-theme-pick="d" role="menuitemradio">
-              <div class="opt-swatch" data-pv="d"></div>
-              <div class="switcher-opt-name">Vivid</div>
-            </button>
-            <button class="switcher-opt" data-theme-pick="f" role="menuitemradio">
-              <div class="opt-swatch" data-pv="f"></div>
-              <div class="switcher-opt-name">Pro</div>
-            </button>
-          </div>
-        </div>
-        <div class="switcher-section">
-          <div class="switcher-label">外观</div>
-          <div class="switcher-options">
-            <button class="switcher-opt" data-mode-pick="light" role="menuitemradio">
-              <div class="opt-mode-glyph light">☀</div>
-              <div class="switcher-opt-name">浅色</div>
-            </button>
-            <button class="switcher-opt" data-mode-pick="dark" role="menuitemradio">
-              <div class="opt-mode-glyph dark">☾</div>
-              <div class="switcher-opt-name">深色</div>
-            </button>
-            <button class="switcher-opt" data-mode-pick="auto" role="menuitemradio">
-              <div class="opt-mode-glyph auto">A</div>
-              <div class="switcher-opt-name">自动</div>
-            </button>
-          </div>
-        </div>
-      </div>
     </div>
   </header>
 
-  <section class="hero">
-    <div class="hero-label" id="heroLabel">今日 Token</div>
-    <div class="hero-row">
-      <div class="hero-value" id="heroValue">1,770,401</div>
-      <div class="hero-delta" id="heroDelta">↓ 90%</div>
+  <div class="settings-menu" data-role="settings" role="menu">
+    <div class="menu-section">
+      <div class="menu-label" data-i18n="menu_appearance">APPEARANCE</div>
+      <div class="menu-seg" data-role="theme-seg">
+        <button class="menu-seg-btn" data-theme="light">
+          <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="7" cy="7" r="2.5"/><line x1="7" y1="1" x2="7" y2="2.5"/><line x1="7" y1="11.5" x2="7" y2="13"/><line x1="1" y1="7" x2="2.5" y2="7"/><line x1="11.5" y1="7" x2="13" y2="7"/><line x1="2.8" y1="2.8" x2="3.8" y2="3.8"/><line x1="10.2" y1="10.2" x2="11.2" y2="11.2"/><line x1="2.8" y1="11.2" x2="3.8" y2="10.2"/><line x1="10.2" y1="3.8" x2="11.2" y2="2.8"/></svg>
+          <span data-i18n="theme_light">Light</span>
+        </button>
+        <button class="menu-seg-btn" data-theme="dark">
+          <svg viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><path d="M11.5 8.2A4.5 4.5 0 1 1 5.8 2.5a4.5 4.5 0 0 0 5.7 5.7Z"/></svg>
+          <span data-i18n="theme_dark">Dark</span>
+        </button>
+        <button class="menu-seg-btn active" data-theme="auto">
+          <span data-i18n="theme_auto">Auto</span>
+        </button>
+      </div>
     </div>
-    <div class="hero-sub">
-      <span id="heroCost">$1.71</span>
-      <span class="hero-sub-sep">·</span>
-      <span id="heroRecords">22 records</span>
+    <div class="menu-section">
+      <div class="menu-label" data-i18n="menu_scheme">THEME COLOR</div>
+      <div class="menu-seg" data-role="scheme-seg">
+        <button class="menu-seg-btn" data-scheme="business" title="商务">
+          <span class="scheme-dot" style="--swatch:#0a84ff"></span>
+          <span data-i18n="scheme_business">商务</span>
+        </button>
+        <button class="menu-seg-btn" data-scheme="vibrant" title="活泼">
+          <span class="scheme-dot" style="--swatch:#e23429"></span>
+          <span data-i18n="scheme_vibrant">活泼</span>
+        </button>
+        <button class="menu-seg-btn" data-scheme="minimal" title="极简">
+          <span class="scheme-dot" style="--swatch:#2563eb"></span>
+          <span data-i18n="scheme_minimal">极简</span>
+        </button>
+      </div>
     </div>
-  </section>
-
-  <div class="tabs-wrap">
-    <div class="tabs" role="tablist">
-      <button class="tab" role="tab">今日</button>
-      <button class="tab active" role="tab" aria-selected="true">7d</button>
-      <button class="tab" role="tab">14d</button>
-      <button class="tab" role="tab">30d</button>
+    <div class="menu-section">
+      <div class="menu-label" data-i18n="menu_language">LANGUAGE</div>
+      <div class="menu-seg" data-role="lang-seg">
+        <button class="menu-seg-btn active" data-lang="en">EN</button>
+        <button class="menu-seg-btn" data-lang="cn">中文</button>
+      </div>
     </div>
   </div>
 
-  <section class="chart">
-    <div class="chart-head">
-      <div class="chart-title" id="chartTitle">7 天趋势</div>
-      <div class="chart-total" id="chartTotal">$185.30</div>
+  <section class="strip">
+    <div class="strip-top">
+      <div class="strip-label" data-role="strip-label"><span class="accent-bar"></span><span data-role="strip-label-text">TODAY · TOKENS</span></div>
+      <div class="strip-period" data-role="strip-period">MON · 25 NOV</div>
     </div>
-    <div class="chart-bars" id="chartBars" aria-hidden="true"></div>
-    <div class="chart-labels" id="chartLabels"></div>
+    <div class="strip-row">
+      <div class="strip-value num" data-role="hero-value">1,770,401</div>
+      <div class="strip-delta" data-role="hero-delta">
+        <span class="delta-line"><span class="arrow" data-role="hero-arrow">▼</span><span data-role="hero-delta-val">90.4%</span></span>
+        <span class="vs" data-role="hero-vs">d/d</span>
+      </div>
+    </div>
+    <div class="strip-cells">
+      <div class="cell">
+        <div class="cell-key" data-i18n="cost">COST</div>
+        <div class="cell-val num" data-role="rail-cost">$1.71</div>
+        <div class="cell-sub" data-role="rail-cost-sub">≈ ¥12.4</div>
+      </div>
+      <div class="cell">
+        <div class="cell-key" data-i18n="records">RECORDS</div>
+        <div class="cell-val num muted" data-role="rail-records">22</div>
+        <div class="cell-sub" data-i18n="records_sub">CALLS LOGGED</div>
+      </div>
+      <div class="cell">
+        <div class="cell-key" data-i18n="avg">AVG / CALL</div>
+        <div class="cell-val num" data-role="rail-avg">80.5K</div>
+        <div class="cell-sub" data-role="rail-avg-sub">TOK · $0.078</div>
+      </div>
+    </div>
   </section>
 
-  <section class="models" id="modelsList"></section>
+  <nav class="tabs-row" role="tablist" data-role="tabs">
+    <button class="tab" role="tab" data-period="today" data-i18n="tab_today">今日</button>
+    <button class="tab active" role="tab" aria-selected="true" data-period="7d" data-i18n="tab_7d">7D</button>
+    <button class="tab" role="tab" data-period="14d" data-i18n="tab_14d">14D</button>
+    <button class="tab" role="tab" data-period="30d" data-i18n="tab_30d">30D</button>
+  </nav>
+
+  <section class="chart">
+    <div class="chart-head">
+      <div class="chart-title" data-role="chart-title">7-DAY TAPE · TOKENS</div>
+      <div class="chart-readout">
+        <span>Σ</span><span class="read-val num" data-role="chart-total">$185.30</span>
+      </div>
+    </div>
+    <div class="chart-plot">
+      <div class="chart-bars" data-role="chart-bars" aria-hidden="true"></div>
+      <div class="chart-flag">
+        <div class="flag-tag" data-role="flag-tag">NOW</div>
+        <div class="flag-val num" data-role="flag-val">$1.71</div>
+        <div class="flag-sub num" data-role="flag-sub">1.77M</div>
+      </div>
+    </div>
+    <div class="chart-axis" data-role="chart-axis"></div>
+  </section>
+
+  <div class="models-head">
+    <div data-i18n="model">MODEL</div>
+    <div class="col-share" data-i18n="share">SHARE</div>
+    <div class="col-tok" data-i18n="tok">TOK</div>
+    <div class="col-cost" data-i18n="col_cost">COST</div>
+  </div>
+  <section class="models" data-role="models"></section>
 
   <footer class="footer">
-    <span id="nextUpdate">下次更新 --:--</span>
-    <a class="footer-link" id="fullReportLink" href="#" role="button">
-      完整报告
-    </a>
+    <span class="next-update"><span data-i18n="next">NEXT</span> · <b data-role="next-update">10:00</b></span>
+    <span class="ticker" data-role="ticker">
+      <span class="chip pos"><span class="sym">OPS</span><span class="val">+12.4%</span></span>
+      <span class="chip neg"><span class="sym">SNT</span><span class="val">−3.1%</span></span>
+      <span class="chip pos"><span class="sym">GPT</span><span class="val">+0.6%</span></span>
+    </span>
+    <a class="footer-link" data-role="report" href="#" role="button">完整报告 ↗</a>
   </footer>
-</div>
+</template>
 
 <script>
-  // ===========================================================
-  // Helpers
-  // ===========================================================
-  const $ = id => document.getElementById(id);
-  const invoke = (cmd, args) => window.__TAURI__?.core?.invoke?.(cmd, args);
+/* ============================================================
+   TokSee — production wiring
+   - Talks to Rust via Tauri IPC (get_usage / open_html_report).
+   - Transforms tokkit JSON → the popover template's expected shape.
+   - Persists scheme / mode / lang in localStorage.
+   - Manual refresh: re-fetch only. Auto refresh (hourly from Rust):
+     re-fetch + advance "下次更新 HH:MM".
+   ============================================================ */
 
-  // Map model_label → color class (matches CSS .model-row[data-model="..."])
-  function classifyModel(label) {
-    const l = String(label).toLowerCase();
-    if (l.includes('gpt')) return 'gpt';
-    if (l.includes('opus')) return 'opus';
-    if (l.includes('sonnet')) return 'sonnet';
-    if (l.includes('haiku')) return 'haiku';
-    return 'haiku'; // fallback gray
+const invoke = (cmd, args) => window.__TAURI__?.core?.invoke?.(cmd, args);
+
+/* ---- i18n ---- */
+const I18N = {
+  en: {
+    label_today: 'TODAY · TOKENS', label_7d: '7D · TOKENS', label_14d: '14D · TOKENS', label_30d: '30D · TOKENS',
+    title_today: '24H TAPE · TOKENS', title_7d: '7-DAY TAPE · TOKENS', title_14d: '14-DAY TAPE · TOKENS', title_30d: '30-DAY TAPE · TOKENS',
+    period_today: '', period_7d: '', period_14d: '', period_30d: '',
+    vs_dd: 'd/d', vs_ww: 'w/w', vs_pp: 'p/p', vs_mm: 'm/m',
+    flag_peak: 'PEAK', flag_now: 'NOW',
+    sync: 'SYNC', sync_offline: 'OFFLINE',
+    records_sub: 'CALLS LOGGED', avg_sub_prefix: 'TOK · ',
+    tab_today: 'Today', tab_7d: '7D', tab_14d: '14D', tab_30d: '30D',
+    cost: 'COST', records: 'RECORDS', avg: 'AVG / CALL',
+    model: 'MODEL', share: 'SHARE', tok: 'TOK', col_cost: 'COST',
+    next: 'NEXT', report: 'Full Report ↗',
+    menu_appearance: 'APPEARANCE', menu_scheme: 'THEME COLOR', menu_language: 'LANGUAGE',
+    theme_light: 'Light', theme_dark: 'Dark', theme_auto: 'Auto',
+    scheme_business: 'Business', scheme_vibrant: 'Vibrant', scheme_minimal: 'Minimal',
+  },
+  cn: {
+    label_today: '今日 · TOKEN', label_7d: '近 7 天 · TOKEN', label_14d: '近 14 天 · TOKEN', label_30d: '近 30 天 · TOKEN',
+    title_today: '今日 24 小时', title_7d: '近 7 天', title_14d: '近 14 天', title_30d: '近 30 天',
+    period_today: '', period_7d: '', period_14d: '', period_30d: '',
+    vs_dd: '日环比', vs_ww: '周环比', vs_pp: '双周环比', vs_mm: '月环比',
+    flag_peak: '峰值', flag_now: '当前',
+    sync: '已同步', sync_offline: '未连接',
+    records_sub: '次记录', avg_sub_prefix: '均价 ',
+    tab_today: '今日', tab_7d: '7 天', tab_14d: '14 天', tab_30d: '30 天',
+    cost: '费用', records: '调用', avg: '单次均量',
+    model: '模型', share: '占比', tok: '用量', col_cost: '费用',
+    next: '下次更新', report: '完整报告 ↗',
+    menu_appearance: '显示模式', menu_scheme: '主题配色', menu_language: '语言',
+    theme_light: '浅色', theme_dark: '深色', theme_auto: '跟随系统',
+    scheme_business: '商务', scheme_vibrant: '活泼', scheme_minimal: '极简',
+  },
+};
+
+/* ---- Persisted prefs ---- */
+const PREFS_KEY = 'toksee.prefs.v013';
+const DEFAULTS = { scheme: 'business', mode: 'auto', lang: 'cn' };
+let prefs = (() => {
+  try { return Object.assign({}, DEFAULTS, JSON.parse(localStorage.getItem(PREFS_KEY) || '{}')); }
+  catch { return Object.assign({}, DEFAULTS); }
+})();
+function savePrefs() { try { localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)); } catch {} }
+
+let LANG = prefs.lang;
+const t = (k) => (I18N[LANG] && I18N[LANG][k]) || k;
+
+/* ---- Period mapping ---- */
+const PERIOD_TO_IPC_ARG = { today: 'today', '7d': '7', '14d': '14', '30d': '30' };
+const PERIOD_TO_REPORT_DAYS = { today: 1, '7d': 7, '14d': 14, '30d': 30 };
+
+/* ---- Number formatters ---- */
+function fmtTokens(n) {
+  if (!n || n === 0) return '0';
+  if (n >= 1e9) return (n / 1e9).toFixed(1) + 'B';
+  if (n >= 1e7) return Math.round(n / 1e6) + 'M';
+  if (n >= 1e6) return (n / 1e6).toFixed(2) + 'M';
+  if (n >= 1e4) return Math.round(n / 1e3) + 'K';
+  if (n >= 1e3) return (n / 1e3).toFixed(1) + 'K';
+  return n.toLocaleString();
+}
+function fmtCost(c) {
+  if (!c || c === 0) return '$0.00';
+  if (c >= 100) return '$' + Math.round(c).toLocaleString();
+  if (c >= 10) return '$' + c.toFixed(1);
+  return '$' + c.toFixed(2);
+}
+function fmtCostFull(c) {
+  if (!c || c === 0) return '$0.00';
+  return '$' + c.toFixed(2);
+}
+function fmtShortDate(iso) {
+  if (!iso) return '';
+  const p = iso.split('-');
+  if (p.length !== 3) return iso;
+  return `${parseInt(p[1], 10)}/${parseInt(p[2], 10)}`;
+}
+function todayISO() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function classifyModel(label) {
+  const l = String(label || '').toLowerCase();
+  if (l.includes('opus')) return 'opus';
+  if (l.includes('sonnet')) return 'sonnet';
+  if (l.includes('haiku')) return 'haiku';
+  if (l.includes('gpt')) return 'gpt';
+  return 'haiku';
+}
+
+/* ---- Period label: "本周 · 11/19 → 11/25" / "今日 · 周三 11/25" ---- */
+function buildPeriodLabel(period, raw) {
+  const today = new Date();
+  const fmt = d => `${d.getMonth() + 1}/${d.getDate()}`;
+  const weekdayCN = ['日', '一', '二', '三', '四', '五', '六'];
+
+  if (period === 'today') {
+    return LANG === 'cn'
+      ? `周${weekdayCN[today.getDay()]} · ${fmt(today)}`
+      : today.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }).toUpperCase();
   }
 
-  // 1,770,401 → "1.77M"; 222,571,338 → "223M"; 8,000 → "8.0K"
-  function fmtTokens(n) {
-    if (!n || n === 0) return '0';
-    if (n >= 1e9) return (n / 1e9).toFixed(1) + 'B';
-    if (n >= 1e7) return Math.round(n / 1e6) + 'M';
-    if (n >= 1e6) return (n / 1e6).toFixed(2) + 'M';
-    if (n >= 1e4) return Math.round(n / 1e3) + 'K';
-    if (n >= 1e3) return (n / 1e3).toFixed(1) + 'K';
-    return n.toLocaleString();
+  /* Try to read the date span from raw.by_date if present (most reliable). */
+  const dates = (raw?.by_date || []).slice().sort((a, b) => a.local_date.localeCompare(b.local_date));
+  let start, end;
+  if (dates.length > 0) {
+    start = new Date(dates[0].local_date + 'T00:00:00');
+    end = new Date(dates[dates.length - 1].local_date + 'T00:00:00');
+  } else {
+    /* Fallback: derive from period count */
+    const days = period === '7d' ? 6 : period === '14d' ? 13 : 29;
+    end = today;
+    start = new Date(today); start.setDate(today.getDate() - days);
   }
+  return `${fmt(start)} → ${fmt(end)}`;
+}
 
-  function fmtCost(c) {
-    if (!c || c === 0) return '$0.00';
-    if (c >= 100) return '$' + Math.round(c).toLocaleString();
-    if (c >= 10) return '$' + c.toFixed(1);
-    return '$' + c.toFixed(2);
-  }
-
-  // YYYY-MM-DD → "M/D"
-  function fmtShortDate(iso) {
-    if (!iso) return '';
-    const parts = iso.split('-');
-    if (parts.length !== 3) return iso;
-    return `${parseInt(parts[1], 10)}/${parseInt(parts[2], 10)}`;
-  }
-
-  function todayISO() {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-  }
-
-  // ===========================================================
-  // Data fetching — calls Rust → tok json <period>
-  // ===========================================================
-  const PERIOD_TO_ARG = { 'today': 'today', '7d': '7', '14d': '14', '30d': '30' };
-  // For tok html last <N> — today maps to 1 (no "today-only" HTML report exists upstream).
-  const PERIOD_TO_REPORT_DAYS = { 'today': 1, '7d': 7, '14d': 14, '30d': 30 };
-
-  // Footer "下次更新 HH:MM" — always points at the next clock-aligned hour.
-  // Updated only on popover open and on auto-refresh from Rust (every clock hour);
-  // manual refresh and tab switches do NOT touch this.
-  function updateNextRefreshTime() {
-    const next = new Date();
-    next.setHours(next.getHours() + 1, 0, 0, 0);
-    const hh = String(next.getHours()).padStart(2, '0');
-    const mm = String(next.getMinutes()).padStart(2, '0');
-    const el = $('nextUpdate');
-    if (el) el.textContent = `下次更新 ${hh}:${mm}`;
-  }
-
-  function currentPeriod() {
-    const active = document.querySelector('[role="tab"].active');
-    return (active && TAB_PERIODS[active.textContent.trim()]) || '7d';
-  }
-
-  async function loadAndRender(period) {
-    const arg = PERIOD_TO_ARG[period] || '7';
-    showLoading();
+/* ---- Period-over-period delta: fetch the previous window, compare cost ----
+   Returns { dir: 'up'|'down', val: '12.6%', vsKey: 'vs_ww' } or null. */
+async function fetchPeriodDelta(period, currentCost) {
+  if (period === 'today') {
+    /* Compare today's cost vs yesterday's. Use 'last 2' to grab today + yesterday. */
     try {
-      const data = await invoke('get_usage', { period: arg });
-      if (!data) {
-        showError('No data returned (Tauri IPC unavailable)');
-        return;
-      }
-      renderData(period, data);
-    } catch (err) {
-      console.error('[toksee] loadAndRender failed:', err);
-      showError(String(err));
-    }
+      const raw = await invoke('get_usage', { period: '2' });
+      const dates = (raw?.by_date || []).slice().sort((a, b) => a.local_date.localeCompare(b.local_date));
+      if (dates.length < 2) return null;
+      const tdy = todayISO();
+      const todayBucket = dates.find(d => d.local_date === tdy);
+      const yBucket = dates.find(d => d.local_date !== tdy);
+      if (!todayBucket || !yBucket) return null;
+      const cur = todayBucket.estimated_cost_usd || 0;
+      const prev = yBucket.estimated_cost_usd || 0;
+      if (prev <= 0) return null;
+      const pct = ((cur - prev) / prev) * 100;
+      return { dir: pct >= 0 ? 'up' : 'down', val: Math.abs(pct).toFixed(1) + '%', vsKey: 'vs_dd' };
+    } catch { return null; }
   }
 
-  function showLoading() {
-    $('heroValue').textContent = '…';
-    $('heroDelta').style.display = 'none';
+  /* For 7d/14d/30d: fetch previous-period equivalent and compare totals. */
+  const days = period === '7d' ? 7 : period === '14d' ? 14 : 30;
+  const vsKey = period === '7d' ? 'vs_ww' : period === '14d' ? 'vs_pp' : 'vs_mm';
+  try {
+    const raw2 = await invoke('get_usage', { period: String(days * 2) });
+    const dates = (raw2?.by_date || []).slice().sort((a, b) => a.local_date.localeCompare(b.local_date));
+    if (dates.length < days * 2) {
+      /* Not enough history yet — try sub-set */
+      if (dates.length < days + 1) return null;
+    }
+    /* Split into two halves: prev = first `days`, current = last `days`. */
+    const half = Math.floor(dates.length / 2);
+    const prevSlice = dates.slice(0, half);
+    const curSlice = dates.slice(half);
+    const prev = prevSlice.reduce((s, d) => s + (d.estimated_cost_usd || 0), 0);
+    const cur = curSlice.reduce((s, d) => s + (d.estimated_cost_usd || 0), 0);
+    if (prev <= 0) return null;
+    const pct = ((cur - prev) / prev) * 100;
+    return { dir: pct >= 0 ? 'up' : 'down', val: Math.abs(pct).toFixed(1) + '%', vsKey };
+  } catch {
+    return null;
+  }
+}
+
+/* ---- Transform tokkit JSON → popover template's expected shape ---- */
+function transformIpcData(period, raw) {
+  if (!raw) return null;
+  const isToday = period === 'today';
+  const tdy = todayISO();
+
+  let totalTokens = 0, totalCost = 0, totalRecords = 0;
+  let series = []; // { v, isToday }[]
+  let labels = []; // { i, t, now? }[]
+
+  /* Build axis labels with dedup — never emit two labels at the same i. */
+  function buildLabels(items, indices) {
+    const seen = new Set();
+    const out = [];
+    indices.forEach(({ i, now }) => {
+      if (i === undefined || i < 0 || i >= items.length || seen.has(i)) return;
+      seen.add(i);
+      out.push({ i, t: items[i].label, now: !!now });
+    });
+    return out.sort((a, b) => a.i - b.i);
   }
 
-  function showError(msg) {
-    $('heroLabel').textContent = '加载失败';
-    $('heroValue').textContent = '—';
-    $('heroDelta').style.display = 'none';
-    $('heroCost').textContent = msg.length > 60 ? msg.slice(0, 60) + '…' : msg;
-    $('heroRecords').textContent = '';
-    $('chartBars').innerHTML = '';
-    $('chartLabels').innerHTML = '';
-    $('modelsList').innerHTML = '';
-  }
+  /* Flag rail tracks PEAK on today view (highest hourly bar) or NOW on
+     longer ranges (today's bar, or last bar if no today data yet).
+     Carries the time/date label as tagSuffix so the chart-flag header
+     reads "峰值 · 19:00" or "当前 · 5/8" instead of just the static word. */
+  let flagTagKey = 'flag_now';
+  let flagTagSuffix = '';
+  let flagBarSourceTokens = 0;
 
-  // ===========================================================
-  // Render real data
-  // ===========================================================
-  function renderData(period, data) {
-    const isToday = period === 'today';
-    const today = todayISO();
+  if (isToday) {
+    const tot = raw.totals || {};
+    totalTokens = tot.total_tokens || 0;
+    totalCost = tot.estimated_cost_usd || 0;
+    totalRecords = tot.records || 0;
 
-    // ---- Hero ----
-    let totalTokens = 0, totalCost = 0, totalRecords = 0, label = '';
-    if (isToday) {
-      const t = data.totals || {};
-      totalTokens = t.total_tokens || 0;
-      totalCost = t.estimated_cost_usd || 0;
-      totalRecords = t.records || 0;
-      label = '今日 Token';
-    } else {
-      const dates = data.by_date || [];
-      totalTokens = dates.reduce((s, d) => s + (d.total_tokens || 0), 0);
-      totalCost = dates.reduce((s, d) => s + (d.estimated_cost_usd || 0), 0);
-      totalRecords = dates.reduce((s, d) => s + (d.records || 0), 0);
-      label = `${data.range_days || dates.length} 天总 Token`;
-    }
-
-    $('heroLabel').textContent = label;
-    $('heroValue').textContent = totalTokens.toLocaleString();
-    $('heroCost').textContent = fmtCost(totalCost);
-    $('heroRecords').textContent = totalRecords.toLocaleString() + ' records';
-    $('heroDelta').style.display = 'none'; // Phase 2.5: compute period-over-period delta
-
-    // ---- Chart ----
-    const chartTitle = isToday ? '今日按小时' : `近 ${data.range_days || 7} 天`;
-    $('chartTitle').textContent = chartTitle;
-    $('chartTotal').textContent = fmtCost(totalCost);
-
-    let series = [];
-    if (isToday) {
-      // by_hour: filter to non-zero hours, fall back to all if all zero
-      const hours = data.by_hour || [];
-      const nonZero = hours.filter(h => (h.total_tokens || 0) > 0);
-      const useHours = nonZero.length > 0 ? nonZero : hours;
-      series = useHours.map(h => ({
-        cost: h.estimated_cost_usd || 0,
-        label: h.hour_label || '', // full "HH:MM" so a single bar (e.g. "01:00") is unambiguous
-        isToday: false,
-      }));
-    } else {
-      // by_date: sort ascending so today is on the right
-      const dates = (data.by_date || []).slice().sort((a, b) =>
-        a.local_date.localeCompare(b.local_date)
-      );
-      series = dates.map(d => ({
-        cost: d.estimated_cost_usd || 0,
-        label: fmtShortDate(d.local_date),
-        isToday: d.local_date === today,
-      }));
-    }
-
-    const maxCost = Math.max(...series.map(s => s.cost), 0.001);
-    const peakIdx = series.reduce(
-      (max, s, i) => (s.cost > series[max].cost ? i : max),
-      0
-    );
-
-    const barsEl = $('chartBars');
+    const hours = raw.by_hour || [];
+    const nonZero = hours.filter(h => (h.total_tokens || 0) > 0);
+    const useHours = nonZero.length > 0 ? nonZero : hours;
+    series = useHours.map((h, i) => ({
+      v: h.estimated_cost_usd || 0,
+      isToday: false,
+      label: (h.hour_label || '').slice(0, 5),
+      _tokens: h.total_tokens || 0,
+    }));
     if (series.length > 0) {
-      barsEl.style.gridTemplateColumns = `repeat(${series.length}, 1fr)`;
-      barsEl.innerHTML = series
-        .map((s, i) => {
-          const heightPct = Math.max(2, (s.cost / maxCost) * 100);
-          const cls = ['bar', i === peakIdx ? 'peak' : '', s.isToday ? 'today' : '']
-            .filter(Boolean)
-            .join(' ');
-          return `<div class="${cls}" style="height: ${heightPct}%"></div>`;
-        })
-        .join('');
-    } else {
-      barsEl.innerHTML = '';
+      const peakIdx = series.reduce((m, s, i) => s.v > series[m].v ? i : m, 0);
+      const lastIdx = series.length - 1;
+
+      /* chart-flag follows PEAK: tag "峰值 · 19:00", val + tokens from peak bar */
+      flagTagKey = 'flag_peak';
+      flagTagSuffix = series[peakIdx].label;
+      flagVal = fmtCostFull(series[peakIdx].v);
+      flagBarSourceTokens = series[peakIdx]._tokens;
+      flagSub = fmtTokens(flagBarSourceTokens);
+
+      /* axis: first + last only (last marked as 'now'). Peak time
+         is already in the chart-flag tag, no need to also paint it
+         on the axis where it would collide with last. */
+      labels = buildLabels(series, [
+        { i: 0 },
+        { i: lastIdx, now: true },
+      ]);
     }
+  } else {
+    const dates = (raw.by_date || []).slice().sort((a, b) => a.local_date.localeCompare(b.local_date));
+    totalTokens = dates.reduce((s, d) => s + (d.total_tokens || 0), 0);
+    totalCost = dates.reduce((s, d) => s + (d.estimated_cost_usd || 0), 0);
+    totalRecords = dates.reduce((s, d) => s + (d.records || 0), 0);
 
-    // Labels: only if ≤ 8 entries (avoid clutter for 14d/30d)
-    const labelsEl = $('chartLabels');
-    if (series.length > 0 && series.length <= 8) {
-      labelsEl.style.gridTemplateColumns = `repeat(${series.length}, 1fr)`;
-      labelsEl.innerHTML = series
-        .map(s => {
-          const cls = s.isToday ? 'chart-label today' : 'chart-label';
-          return `<span class="${cls}">${s.label || ''}</span>`;
-        })
-        .join('');
-      labelsEl.style.visibility = 'visible';
-    } else {
-      labelsEl.innerHTML = '';
-      labelsEl.style.visibility = 'hidden';
+    series = dates.map(d => ({
+      v: d.estimated_cost_usd || 0,
+      isToday: d.local_date === tdy,
+      label: fmtShortDate(d.local_date),
+      _tokens: d.total_tokens || 0,
+    }));
+    if (series.length > 0) {
+      const lastIdx = series.length - 1;
+      const midIdx = Math.floor(series.length / 2);
+
+      /* chart-flag follows today's bar (or last if no today data). */
+      const todayIdx = series.findIndex(s => s.isToday);
+      const flagIdx = todayIdx >= 0 ? todayIdx : lastIdx;
+      flagTagKey = 'flag_now';
+      flagTagSuffix = series[flagIdx].label;
+      flagVal = fmtCostFull(series[flagIdx].v);
+      flagSub = fmtTokens(series[flagIdx]._tokens);
+
+      labels = buildLabels(series, [
+        { i: 0 },
+        { i: midIdx },
+        { i: lastIdx, now: series[lastIdx].isToday },
+      ]);
     }
-
-    // ---- Models ----
-    // Sort by cost desc, take top 4 (or top 5 for 30d?), classify by name
-    const models = (data.by_model || [])
-      .map(m => ({
-        id: classifyModel(m.model_label),
-        name: m.model_label,
-        tokens: m.total_tokens || 0,
-        cost: m.estimated_cost_usd || 0,
-      }))
-      .sort((a, b) => b.cost - a.cost)
-      .slice(0, 4);
-
-    const maxModelCost = Math.max(...models.map(m => m.cost), 0.001);
-
-    $('modelsList').innerHTML = models
-      .map(m => {
-        const pct = (m.cost / maxModelCost) * 100;
-        return `
-        <div class="model-row" data-model="${m.id}">
-          <div class="model-dot"></div>
-          <div class="model-name">${m.name}</div>
-          <div class="model-bar"><div class="model-bar-fill" style="width: ${pct}%"></div></div>
-          <div class="model-tokens">${fmtTokens(m.tokens)}</div>
-          <div class="model-cost">${fmtCost(m.cost)}</div>
-        </div>
-      `;
-      })
-      .join('');
   }
 
-  // ===========================================================
-  // Theme Switcher
-  // ===========================================================
-  const STORAGE_KEY = 'toksee.theme.v1';
-  const root = document.documentElement;
-  const settingsBtn = $('settingsBtn');
-  const panel = $('switcherPanel');
+  /* Models — sort by cost desc, top 4 */
+  const models = (raw.by_model || [])
+    .map(m => ({
+      id: classifyModel(m.model_label),
+      name: (m.model_label || '').replace(/^Claude\s+(\w+)\s+(.+)/, 'Claude $1').trim() || m.model_label,
+      ver: (() => {
+        const mt = String(m.model_label || '').match(/(\d+\.\d+|\d+)/);
+        return mt ? mt[1] : '';
+      })(),
+      tokens: fmtTokens(m.total_tokens || 0),
+      cost: fmtCostFull(m.estimated_cost_usd || 0),
+      share: totalCost > 0 ? (m.estimated_cost_usd || 0) / totalCost : 0,
+    }))
+    .sort((a, b) => parseFloat(b.cost.replace(/[^\d.]/g, '')) - parseFloat(a.cost.replace(/[^\d.]/g, '')))
+    .slice(0, 4);
 
-  const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{"theme":"b","mode":"light"}');
-  applyTheme(saved.theme, saved.mode);
+  /* flagVal / flagSub / flagTagKey / flagTagSuffix already populated above
+     (alongside the series build), so the side rail's data comes from the
+     correct bar and the tag prefix follows it. */
 
-  const mq = window.matchMedia('(prefers-color-scheme: dark)');
-  mq.addEventListener('change', () => {
-    if (saved.mode === 'auto') applyTheme(saved.theme, 'auto');
-  });
+  return {
+    labelKey: `label_${period}`,
+    titleKey: `title_${period}`,
+    periodKey: `period_${period}`,
+    hero: totalTokens,
+    cost: totalCost,
+    costRMB: Math.round(totalCost * 7.25).toLocaleString(),
+    records: totalRecords,
+    avg: totalRecords > 0 ? fmtTokens(Math.round(totalTokens / totalRecords)) : '—',
+    avgCost: totalRecords > 0 ? '$' + (totalCost / totalRecords).toFixed(3) : '—',
+    delta: null, /* fetched async by fetchPeriodDelta + re-render */
+    total: fmtCostFull(totalCost),
+    flag: { tagKey: flagTagKey, tagSuffix: flagTagSuffix, val: flagVal || '$0.00', sub: flagSub || '0' },
+    series: series.map(s => s.v),
+    isToday: series.map(s => s.isToday),
+    labels: labels,
+    models: models,
+  };
+}
 
-  function applyTheme(theme, mode) {
-    saved.theme = theme;
-    saved.mode = mode;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
+/* ---- Boot single popover ---- */
+const tmpl = document.getElementById('popover-tmpl');
+const popovers = document.querySelectorAll('.popover');
+popovers.forEach(p => p.appendChild(tmpl.content.cloneNode(true)));
 
-    root.setAttribute('data-theme', theme);
-    if (mode === 'auto') {
-      root.setAttribute('data-mode', mq.matches ? 'dark' : 'light');
+/* Render the (single) popover with transformed data */
+function renderPopover(root, period, d) {
+  const $ = sel => root.querySelector(`[data-role="${sel}"]`);
+  if (!d) return;
+
+  $('strip-label-text').textContent = t(d.labelKey);
+  $('strip-period').textContent = d.periodLabel || '';
+  $('hero-value').textContent = (d.hero || 0).toLocaleString();
+
+  const delta = $('hero-delta');
+  if (delta) {
+    if (d.delta) {
+      delta.style.display = '';
+      delta.classList.remove('up', 'down');
+      delta.classList.add(d.delta.dir);
+      const arrow = root.querySelector('[data-role="hero-arrow"]');
+      const val = root.querySelector('[data-role="hero-delta-val"]');
+      const vs = root.querySelector('[data-role="hero-vs"]');
+      if (arrow) arrow.textContent = d.delta.dir === 'up' ? '▲' : '▼';
+      if (val) val.textContent = d.delta.val;
+      if (vs) vs.textContent = t(d.delta.vsKey);
     } else {
-      root.setAttribute('data-mode', mode);
+      delta.style.display = 'none';
     }
-
-    document.querySelectorAll('[data-theme-pick]').forEach(b => {
-      b.classList.toggle('active', b.dataset.themePick === theme);
-    });
-    document.querySelectorAll('[data-mode-pick]').forEach(b => {
-      b.classList.toggle('active', b.dataset.modePick === mode);
-    });
   }
 
-  settingsBtn.addEventListener('click', e => {
-    e.stopPropagation();
-    const isOpen = panel.classList.toggle('open');
-    settingsBtn.setAttribute('aria-expanded', String(isOpen));
-  });
+  $('rail-cost').textContent = fmtCostFull(d.cost);
+  $('rail-cost-sub').textContent = '≈ ¥' + d.costRMB;
+  $('rail-records').textContent = (d.records || 0).toLocaleString();
+  $('rail-avg').textContent = d.avg;
+  $('rail-avg-sub').textContent = t('avg_sub_prefix') + d.avgCost;
 
-  document.addEventListener('click', e => {
-    if (!panel.contains(e.target) && e.target !== settingsBtn) {
-      panel.classList.remove('open');
-      settingsBtn.setAttribute('aria-expanded', 'false');
-    }
-  });
+  $('chart-title').textContent = t(d.titleKey);
+  $('chart-total').textContent = d.total;
+  /* flag-tag: "峰值 · 19:00" / "当前 · 5/8". Suffix is the time/date the
+     flag is pointing at; without it the user can't tell which bar the
+     side-rail value belongs to. */
+  $('flag-tag').textContent = t(d.flag.tagKey) + (d.flag.tagSuffix ? ' · ' + d.flag.tagSuffix : '');
+  $('flag-val').textContent = d.flag.val;
+  $('flag-sub').textContent = d.flag.sub;
 
-  document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') {
-      panel.classList.remove('open');
-      settingsBtn.setAttribute('aria-expanded', 'false');
-    }
-  });
+  const max = Math.max(...d.series, 0.001);
+  const peakIdx = d.series.reduce((m, v, i, a) => v > a[m] ? i : m, 0);
+  const span = d.series.length || 1;
 
-  document.querySelectorAll('[data-theme-pick]').forEach(b => {
-    b.addEventListener('click', () => applyTheme(b.dataset.themePick, saved.mode));
-  });
-  document.querySelectorAll('[data-mode-pick]').forEach(b => {
-    b.addEventListener('click', () => applyTheme(saved.theme, b.dataset.modePick));
-  });
+  /* Bars: flex layout with same gap as axis grid (3px) for perfect alignment. */
+  $('chart-bars').innerHTML = d.series.map((v, i) => {
+    const h = v === 0 ? 0 : Math.max(2, (v / max) * 60);
+    const cls = ['bar'];
+    if (v === 0) cls.push('zero');
+    else { if (i === peakIdx) cls.push('peak'); if (d.isToday[i]) cls.push('today'); }
+    return `<div class="${cls.join(' ')}" style="height:${h}px"></div>`;
+  }).join('');
 
-  // ===========================================================
-  // Tabs — swap period on click
-  // ===========================================================
-  const TAB_PERIODS = { '今日': 'today', '7d': '7d', '14d': '14d', '30d': '30d' };
-  const PERIOD_TO_TAB = { 'today': '今日', '7d': '7d', '14d': '14d', '30d': '30d' };
+  /* Axis: grid layout with same column count + gap as bars, label spans
+     occupy specific columns by index — alignment is automatic. */
+  const axisEl = $('chart-axis');
+  axisEl.style.gridTemplateColumns = `repeat(${span}, 1fr)`;
+  axisEl.innerHTML = (d.labels || []).map(l =>
+    `<span class="${l.now ? 'now' : ''}" style="grid-column: ${l.i + 1};">${l.t}</span>`
+  ).join('');
 
-  function activateTab(period) {
-    const targetText = PERIOD_TO_TAB[period];
-    document.querySelectorAll('[role="tab"]').forEach(x => {
-      const isActive = x.textContent.trim() === targetText;
-      x.classList.toggle('active', isActive);
-      x.setAttribute('aria-selected', String(isActive));
+  root.querySelector('[data-role="models"]').innerHTML = d.models.map(m => `
+    <div class="model-row" data-model="${m.id}">
+      <div class="model-name-wrap">
+        <div class="model-dot"></div>
+        <div class="model-name">${m.name}${m.ver ? ' <span class="ver">' + m.ver + '</span>' : ''}</div>
+      </div>
+      <div class="model-share">
+        <div class="share-bar"><span style="width:${(m.share * 100).toFixed(1)}%"></span></div>
+        <div class="share-pct num">${(m.share * 100).toFixed(m.share < 0.05 ? 1 : 0)}%</div>
+      </div>
+      <div class="model-tok num">${m.tokens}</div>
+      <div class="model-cost num">${m.cost}</div>
+    </div>
+  `).join('');
+
+  root.querySelectorAll('[data-role="tabs"] .tab').forEach(tab => {
+    const isActive = tab.dataset.period === period;
+    tab.classList.toggle('active', isActive);
+    tab.setAttribute('aria-selected', String(isActive));
+  });
+}
+
+/* Apply i18n to all [data-i18n] (re-runs on lang switch) */
+function applyI18n() {
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    el.textContent = t(el.dataset.i18n);
+  });
+  popovers.forEach(p => {
+    const r = p.querySelector('[data-role="report"]');
+    if (r) r.textContent = t('report');
+  });
+}
+
+/* ---- Data fetch (Tauri IPC) ---- */
+let _activePeriod = '7d';
+async function loadAndRender(period) {
+  _activePeriod = period;
+  const arg = PERIOD_TO_IPC_ARG[period] || '7';
+  try {
+    const raw = await invoke('get_usage', { period: arg });
+    if (!raw) return;
+    const transformed = transformIpcData(period, raw);
+    /* Period label is always derivable from raw alone (no second call). */
+    transformed.periodLabel = buildPeriodLabel(period, raw);
+    popovers.forEach(p => renderPopover(p, period, transformed));
+
+    /* Period-over-period delta: fire-and-forget second IPC; if it succeeds,
+       re-render the strip's delta chip. Doesn't block the main paint. */
+    fetchPeriodDelta(period, transformed.cost).then(delta => {
+      if (period !== _activePeriod) return; /* user switched tabs while we waited */
+      if (!delta) return;
+      transformed.delta = delta;
+      popovers.forEach(p => renderPopover(p, period, transformed));
     });
+  } catch (err) {
+    console.error('[toksee] loadAndRender failed:', err);
   }
+}
+function currentPeriod() { return _activePeriod; }
 
-  document.querySelectorAll('[role="tab"]').forEach(t => {
-    t.addEventListener('click', () => {
-      const period = TAB_PERIODS[t.textContent.trim()];
-      if (!period) return;
-      activateTab(period);
-      loadAndRender(period);
-    });
+/* ---- Tab clicks ---- */
+popovers.forEach(pop => {
+  pop.querySelectorAll('[data-role="tabs"] .tab').forEach(tab => {
+    tab.addEventListener('click', () => loadAndRender(tab.dataset.period));
   });
 
-  // Initial load — 7d default + seed footer with the next clock-aligned hour
-  loadAndRender('7d');
-  updateNextRefreshTime();
-
-  // Re-fetch on tray "refresh", popover re-show, or hourly Rust auto-refresh.
-  // Rust dispatches a CustomEvent with detail.source ∈ {"auto", "manual"};
-  // only auto sources advance the footer "下次更新" time.
-  window.addEventListener('toksee:refresh', (e) => {
+  /* In-popover refresh button — manual; does NOT advance footer next-update. */
+  const r = pop.querySelector('[data-role="refresh"]');
+  if (r) r.addEventListener('click', e => {
+    const b = e.currentTarget;
+    b.style.transition = 'transform 600ms cubic-bezier(.32,.72,0,1)';
+    b.style.transform = 'rotate(360deg)';
+    setTimeout(() => { b.style.transform = ''; b.style.transition = ''; }, 700);
     loadAndRender(currentPeriod());
-    if (e.detail?.source === 'auto') updateNextRefreshTime();
   });
 
-  // In-popover refresh button — manual, never advances the footer time.
-  $('refreshBtn')?.addEventListener('click', () => {
-    loadAndRender(currentPeriod());
-  });
-
-  // "完整报告" — open a tokkit HTML report scoped to the current popover tab.
-  $('fullReportLink')?.addEventListener('click', async (e) => {
+  /* "完整报告" — open the tokkit HTML report scoped to active tab. */
+  const reportLink = pop.querySelector('[data-role="report"]');
+  if (reportLink) reportLink.addEventListener('click', async e => {
     e.preventDefault();
     const days = PERIOD_TO_REPORT_DAYS[currentPeriod()] ?? 7;
-    try {
-      await invoke('open_html_report', { lastDays: days });
-    } catch (err) {
-      console.error('[toksee] open_html_report failed:', err);
-    }
+    try { await invoke('open_html_report', { lastDays: days }); }
+    catch (err) { console.error('[toksee] open_html_report failed:', err); }
   });
+});
+
+/* ---- Settings menu wiring ---- */
+function applyMode(mode) {
+  prefs.mode = mode; savePrefs();
+  const mq = window.matchMedia('(prefers-color-scheme: dark)');
+  const effective = mode === 'auto' ? (mq.matches ? 'dark' : 'light') : mode;
+  popovers.forEach(p => { p.dataset.mode = effective; });
+  document.querySelectorAll('.frame').forEach(f => { f.dataset.modeHost = effective; });
+  document.querySelectorAll('[data-role="theme-seg"] .menu-seg-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.theme === mode);
+  });
+}
+function applyScheme(scheme) {
+  prefs.scheme = scheme; savePrefs();
+  document.body.dataset.scheme = scheme;
+  document.querySelectorAll('[data-role="scheme-seg"] .menu-seg-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.scheme === scheme);
+  });
+}
+function applyLang(lang) {
+  prefs.lang = lang; LANG = lang; savePrefs();
+  document.querySelectorAll('[data-role="lang-seg"] .menu-seg-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.lang === lang);
+  });
+  applyI18n();
+  loadAndRender(currentPeriod());
+}
+
+popovers.forEach(pop => {
+  const menu = pop.querySelector('[data-role="settings"]');
+  const gear = pop.querySelectorAll('.icon-btn')[1];
+  if (!gear || !menu) return;
+
+  gear.addEventListener('click', e => {
+    e.stopPropagation();
+    const opening = !menu.classList.contains('open');
+    document.querySelectorAll('.settings-menu.open').forEach(m => m.classList.remove('open'));
+    document.querySelectorAll('.icon-btn.active').forEach(b => b.classList.remove('active'));
+    if (opening) { menu.classList.add('open'); gear.classList.add('active'); }
+  });
+
+  menu.querySelectorAll('[data-role="theme-seg"] .menu-seg-btn').forEach(btn => {
+    btn.addEventListener('click', () => applyMode(btn.dataset.theme));
+  });
+  menu.querySelectorAll('[data-role="scheme-seg"] .menu-seg-btn').forEach(btn => {
+    btn.addEventListener('click', () => applyScheme(btn.dataset.scheme));
+  });
+  menu.querySelectorAll('[data-role="lang-seg"] .menu-seg-btn').forEach(btn => {
+    btn.addEventListener('click', () => applyLang(btn.dataset.lang));
+  });
+
+  menu.addEventListener('click', e => e.stopPropagation());
+});
+
+document.addEventListener('click', () => {
+  document.querySelectorAll('.settings-menu.open').forEach(m => m.classList.remove('open'));
+  document.querySelectorAll('.icon-btn.active').forEach(b => b.classList.remove('active'));
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.settings-menu.open').forEach(m => m.classList.remove('open'));
+    document.querySelectorAll('.icon-btn.active').forEach(b => b.classList.remove('active'));
+  }
+});
+
+/* ---- Live status + next-update tick ----
+   Status (HH:MM:SS) ticks every second.
+   next-update ticks once at startup + on every "auto" refresh from Rust.
+*/
+function updateStatus() {
+  const now = new Date();
+  const hh = String(now.getHours()).padStart(2, '0');
+  const mm = String(now.getMinutes()).padStart(2, '0');
+  const ss = String(now.getSeconds()).padStart(2, '0');
+  popovers.forEach(p => {
+    const s = p.querySelector('[data-role="status"]');
+    if (s) s.textContent = `${t('sync')} · ${hh}:${mm}:${ss}`;
+  });
+}
+function updateNextRefresh() {
+  const next = new Date(); next.setHours(next.getHours() + 1, 0, 0, 0);
+  const nh = String(next.getHours()).padStart(2, '0');
+  const nm = String(next.getMinutes()).padStart(2, '0');
+  popovers.forEach(p => {
+    const n = p.querySelector('[data-role="next-update"]');
+    if (n) n.textContent = `${nh}:${nm}`;
+  });
+}
+
+/* ---- Auto refresh from Rust (every clock-aligned hour) ----
+   Rust dispatches CustomEvent('toksee:refresh', { detail: { source } });
+   "auto" → re-fetch + advance next-update; "manual" → re-fetch only.
+*/
+window.addEventListener('toksee:refresh', e => {
+  loadAndRender(currentPeriod());
+  if (e.detail?.source === 'auto') updateNextRefresh();
+});
+
+/* ---- React to system dark/light flip when in "auto" mode ---- */
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+  if (prefs.mode === 'auto') applyMode('auto');
+});
+
+/* ---- Boot ---- */
+applyScheme(prefs.scheme);
+applyMode(prefs.mode);
+applyLang(prefs.lang);
+applyI18n();
+updateStatus(); setInterval(updateStatus, 1000);
+updateNextRefresh();
+loadAndRender('7d');
 </script>
 
 </body>

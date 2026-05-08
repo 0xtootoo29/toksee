@@ -25,3 +25,6 @@ dist-ssr
 
 # Internal session handoffs (not for public repo)
 HANDOFF-*.md
+
+# Design handoff staging (one-off, not source)
+_design_handoff/

@@ -7,6 +7,56 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [0.1.3] — 2026-05-08
+
+Major visual redesign. The popover frontend is rewritten end-to-end on a
+new design system co-developed with Claude Design.
+
+### Added
+
+- **Three color schemes**: 商务 / Business (macOS Liquid Glass, system blue,
+  default), 活泼 / Vibrant (Sunset Aurora — magenta-to-indigo gradient hero
+  strip, white luminous numerals), 极简 / Minimal (Stripe / Mercury soft
+  cloud, royal-blue accent). Switch via the gear icon in the popover header.
+- **Light / Dark / Auto** mode picker. Auto follows the system color scheme
+  via `prefers-color-scheme`.
+- **English ↔ 中文** language toggle (i18n on every label, period name,
+  metric key, footer text).
+- Multi-metric **hero strip** replaces the single-number hero — token total,
+  delta, COST · RECORDS · AVG/CALL all in one glance.
+- **Chart side rail** shows NOW / PEAK price flag with token count.
+- All preferences (scheme, mode, lang) persist in `localStorage`.
+
+### Changed
+
+- Popover surface uses `backdrop-filter: blur(40px)` for real macOS-style
+  vibrancy in the Business scheme; Vibrant gets a saturated pink → magenta
+  → indigo gradient *inside* the hero strip while the rest of the popover
+  stays clean white; Minimal goes pure Stripe-style monochrome.
+- Bar chart re-styled: rounded micro-radius bars, today's bar shifts to
+  scheme-specific accent color (indigo for Vibrant, blue for Business),
+  peak bar highlighted, side flag tag pinned to the now/peak position.
+- Model rows now use SF Pro Display tabular figures, share progress bars
+  with scheme-aware fills, version chip next to model name (e.g. "Claude
+  Opus 4.5").
+- `src/index.html` rewritten — was 1438 lines, now 1528 lines including
+  the full template + IPC bridge. The 3 v0.1.2 themes (Native / Vivid / Pro)
+  are removed; replaced by Business / Vibrant / Minimal.
+
+### Preserved
+
+- All v0.1.2 wiring: hourly clock-aligned auto refresh from Rust, manual
+  refresh that does NOT shift the schedule, `TOKKIT_TIMEZONE` env injection
+  for hour labels in local time, "完整报告" link generates a tokkit HTML
+  report scoped to the active tab with the upstream range switcher hidden,
+  next-update HH:MM footer.
+- All Tauri IPC commands (`get_usage`, `open_html_report`,
+  `get_menubar_summary`).
+
+[0.1.3]: https://github.com/0xtootoo29/toksee/releases/tag/v0.1.3
+
+---
+
 ## [0.1.2] — 2026-05-06
 
 Wired up four interactive elements that were inert in v0.1.0/v0.1.1.

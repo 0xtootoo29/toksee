@@ -8,7 +8,7 @@ use tauri::{
     ActivationPolicy, Manager, PhysicalPosition, WindowEvent,
 };
 
-const POPOVER_WIDTH: f64 = 380.0;
+const POPOVER_WIDTH: f64 = 400.0;
 const MENUBAR_HEIGHT_LOGICAL: f64 = 24.0;
 
 // ============================================================
